@@ -1,21 +1,64 @@
-import { FilledIconButton } from "@/core/components/FilledIconButton";
-import { StyleSheet, Text, View } from "react-native";
-import Feather from "@expo/vector-icons/Feather";
-import { FC } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+
+import { useThemeContext } from "@/core/contexts/theme.context";
 
 interface ProductHeaderProps {
   title: string;
   onAddPress: () => void;
 }
 
-export const ProductHeader: FC<ProductHeaderProps> = ({
+export const ProductHeader = ({
   title,
   onAddPress,
-}) => {
+}: ProductHeaderProps) => {
+  const { palette } = useThemeContext();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      <FilledIconButton icon={Feather} name="plus" onPress={onAddPress} />
+      <View style={styles.textContainer}>
+        <Text
+          style={[
+            styles.subtitle,
+            { color: palette.texts.secondary },
+          ]}
+        >
+          Organiza tus actividades
+        </Text>
+
+        <Text
+          style={[
+            styles.title,
+            { color: palette.texts.primary },
+          ]}
+        >
+          {title}
+        </Text>
+      </View>
+
+      <Pressable
+        accessibilityLabel="Agregar nueva tarea"
+        onPress={onAddPress}
+        style={({ pressed }) => [
+          styles.addButton,
+          {
+            backgroundColor:
+              palette.colors.primary.default,
+            opacity: pressed ? 0.75 : 1,
+          },
+        ]}
+      >
+        <Ionicons
+          name="add"
+          size={28}
+          color={palette.texts.primaryButton}
+        />
+      </Pressable>
     </View>
   );
 };
@@ -23,12 +66,26 @@ export const ProductHeader: FC<ProductHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 24,
+  },
+  textContainer: {
+    flex: 1,
+    marginRight: 16,
+  },
+  subtitle: {
+    marginBottom: 3,
+    fontSize: 14,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 29,
+    fontWeight: "700",
+  },
+  addButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

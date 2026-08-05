@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "react-native-store-app",
-    "slug": "react-native-store-app",
+    "name": "Gestor de Tareas",
+    "slug": "gestor-de-tareas-idat",
     "version": "1.0.0",
-    "scheme": "react-native-store-app",
+    "scheme": "gestor-tareas",
     "orientation": "portrait",
     "icon": "./src/assets/icon.png",
     "userInterfaceStyle": "light",
@@ -11,7 +11,7 @@
     "splash": {
       "image": "./src/assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F5F7FB"
     },
     "ios": {
       "supportsTablet": true
@@ -19,7 +19,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#F5F7FB"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
