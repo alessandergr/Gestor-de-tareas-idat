@@ -30,11 +30,12 @@ export const AuthContainer = ({
         styles.container,
         { backgroundColor: palette.colors.background },
       ]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
         <View
@@ -94,9 +95,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    justifyContent: "center",
     paddingHorizontal: 22,
-    paddingVertical: 40,
+    paddingTop: 48,
+    paddingBottom: 40,
   },
   iconBox: {
     alignSelf: "center",
