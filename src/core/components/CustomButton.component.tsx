@@ -1,5 +1,10 @@
-import { FC } from "react";
-import { Pressable, PressableProps, StyleSheet, Text } from "react-native";
+import {
+  Pressable,
+  PressableProps,
+  StyleSheet,
+  Text,
+} from "react-native";
+
 import { useThemeContext } from "../contexts/theme.context";
 
 interface CustomButtonProps extends PressableProps {
@@ -8,52 +13,61 @@ interface CustomButtonProps extends PressableProps {
   variant?: "filled" | "outlined";
 }
 
-export const CustomButton: FC<CustomButtonProps> = ({
+export const CustomButton = ({
   title,
   color = "primary",
   variant = "filled",
+  disabled,
   ...props
-}) => {
+}: CustomButtonProps) => {
   const { palette } = useThemeContext();
 
   const getColor = (pressed: boolean) => {
-    return {
-      primary: palette.colors.primary[pressed ? "dark" : "default"],
+    const colors = {
+      primary:
+        palette.colors.primary[
+          pressed ? "dark" : "default"
+        ],
       secondary: palette.colors.border,
       error: palette.colors.error,
       success: palette.colors.success,
     };
-  };
 
-  const getOutlinedStyle = (pressed: boolean) => {
-    return {
-      borderColor: getColor(pressed)[color],
-      borderWidth: 1,
-    };
-  };
-
-  const textColorStyle = (pressed: boolean) => {
-    if (variant === "filled") return { color: palette.colors.surface };
-    else return { color: getColor(pressed)[color] };
+    return colors[color];
   };
 
   return (
     <Pressable
       {...props}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.container,
         {
-          backgroundColor: props.disabled
+          backgroundColor: disabled
             ? palette.colors.border
             : variant === "filled"
-              ? getColor(pressed)[color]
-              : undefined,
+              ? getColor(pressed)
+              : "transparent",
+          borderColor: getColor(pressed),
+          borderWidth: variant === "outlined" ? 1 : 0,
+          opacity: pressed ? 0.8 : 1,
         },
-        { ...(variant === "outlined" ? getOutlinedStyle(pressed) : undefined) },
       ]}
     >
       {({ pressed }) => (
-        <Text style={[styles.title, textColorStyle(pressed)]}>{title}</Text>
+        <Text
+          style={[
+            styles.title,
+            {
+              color:
+                variant === "filled"
+                  ? palette.texts.primaryButton
+                  : getColor(pressed),
+            },
+          ]}
+        >
+          {title}
+        </Text>
       )}
     </Pressable>
   );
@@ -61,14 +75,14 @@ export const CustomButton: FC<CustomButtonProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 8,
-    padding: 16,
-    justifyContent: "center",
-    alignItems: "center",
     flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    borderRadius: 10,
   },
   title: {
-    fontWeight: "bold",
     fontSize: 18,
+    fontWeight: "700",
   },
 });

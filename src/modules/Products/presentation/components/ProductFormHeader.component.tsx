@@ -1,19 +1,19 @@
-import { FC } from "react";
-import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { IconButton } from "@/core/components/IconButton.component";
 import { useRouter } from "expo-router";
+import { StyleSheet, Text, View } from "react-native";
 
-interface ProductFormHeader {
+import { IconButton } from "@/core/components/IconButton.component";
+import { useThemeContext } from "@/core/contexts/theme.context";
+
+interface ProductFormHeaderProps {
   title: string;
 }
 
-export const ProductFormHeader: FC<ProductFormHeader> = ({ title }) => {
+export const ProductFormHeader = ({
+  title,
+}: ProductFormHeaderProps) => {
   const router = useRouter();
-
-  const handleBack = () => {
-    router.back();
-  };
+  const { palette } = useThemeContext();
 
   return (
     <View style={styles.container}>
@@ -21,25 +21,33 @@ export const ProductFormHeader: FC<ProductFormHeader> = ({ title }) => {
         icon={Ionicons}
         name="arrow-back-outline"
         style={styles.backButton}
-        onPress={handleBack}
+        onPress={() => router.back()}
       />
-      <Text style={styles.title}>{title}</Text>
+
+      <Text
+        style={[
+          styles.title,
+          { color: palette.texts.primary },
+        ]}
+      >
+        {title}
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    height: 80,
     alignItems: "center",
     justifyContent: "center",
-    height: 80,
   },
   backButton: {
     position: "absolute",
     left: 0,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 21,
+    fontWeight: "700",
   },
 });
