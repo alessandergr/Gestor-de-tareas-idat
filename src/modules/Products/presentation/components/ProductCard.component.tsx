@@ -1,88 +1,176 @@
-import { FC } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import Feather from "@expo/vector-icons/Feather";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Ionicons } from "@expo/vector-icons";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+
 import { useThemeContext } from "@/core/contexts/theme.context";
-import { IconButton } from "@/core/components/IconButton.component";
 
 interface ProductCardProps {
   title: string;
   description?: string;
-  onEdit: VoidFunction;
-  onDelete: VoidFunction;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-export const ProductCard: FC<ProductCardProps> = ({
+export const ProductCard = ({
   title,
   description,
   onEdit,
   onDelete,
-}) => {
+}: ProductCardProps) => {
   const { palette } = useThemeContext();
+
+  const detail =
+    description?.trim() || "Sin descripción";
+
   return (
     <View
       style={[
-        styles.container,
+        styles.card,
         {
           backgroundColor: palette.colors.surface,
+          borderColor: palette.colors.border,
           ...palette.shadows.sm,
         },
       ]}
     >
-      <View style={styles.header}>
-        <Text
-          numberOfLines={1}
-          style={[styles.title, { color: palette.texts.primary }]}
+      <View style={styles.content}>
+        <View
+          style={[
+            styles.iconBox,
+            {
+              backgroundColor:
+                palette.colors.surfaceSecondary,
+            },
+          ]}
         >
-          {title}
-        </Text>
-        <View style={styles.actions}>
-          <IconButton
-            icon={Feather}
-            name="edit-3"
-            color="primary"
-            onPress={onEdit}
-          />
-          <IconButton
-            icon={MaterialIcons}
-            name="delete-outline"
-            color="error"
-            onPress={onDelete}
+          <Ionicons
+            name="document-text-outline"
+            size={24}
+            color={palette.colors.primary.default}
           />
         </View>
+
+        <View style={styles.textBox}>
+          <Text
+            numberOfLines={1}
+            style={[
+              styles.title,
+              { color: palette.texts.primary },
+            ]}
+          >
+            {title}
+          </Text>
+
+          <Text
+            numberOfLines={2}
+            style={[
+              styles.description,
+              { color: palette.texts.secondary },
+            ]}
+          >
+            {detail}
+          </Text>
+        </View>
       </View>
-      <Text
-        numberOfLines={4}
-        style={[styles.description, { color: palette.texts.secondary }]}
-      >
-        {description}
-      </Text>
+
+      <View
+        style={[
+          styles.divider,
+          { backgroundColor: palette.colors.divider },
+        ]}
+      />
+
+      <View style={styles.actions}>
+        <Pressable
+          style={styles.action}
+          onPress={onEdit}
+        >
+          <Ionicons
+            name="create-outline"
+            size={18}
+            color={palette.colors.primary.dark}
+          />
+
+          <Text
+            style={[
+              styles.actionText,
+              { color: palette.colors.primary.dark },
+            ]}
+          >
+            Editar
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.action}
+          onPress={onDelete}
+        >
+          <Ionicons
+            name="trash-outline"
+            size={18}
+            color={palette.colors.error}
+          />
+
+          <Text
+            style={[
+              styles.actionText,
+              { color: palette.colors.error },
+            ]}
+          >
+            Eliminar
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    height: 150,
+  card: {
     padding: 16,
-    borderRadius: 8,
+    borderWidth: 1,
+    borderRadius: 18,
   },
-  header: {
+  content: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  iconBox: {
+    width: 44,
+    height: 44,
     alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 14,
+  },
+  textBox: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  description: {
+    marginTop: 5,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 14,
   },
   actions: {
     flexDirection: "row",
-    gap: 8,
+    justifyContent: "flex-end",
+    gap: 22,
   },
-  title: {
-    maxWidth: "65%",
-    fontSize: 20,
-    fontWeight: "bold",
+  action: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 2,
   },
-  description: {
+  actionText: {
     fontSize: 14,
-    textAlign: "justify",
+    fontWeight: "700",
   },
 });

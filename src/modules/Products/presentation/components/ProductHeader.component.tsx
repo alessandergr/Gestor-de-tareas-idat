@@ -9,28 +9,24 @@ import {
 import { useThemeContext } from "@/core/contexts/theme.context";
 
 interface ProductHeaderProps {
-  title: string;
+  title?: string;
+  count: number;
   onAddPress: () => void;
 }
 
 export const ProductHeader = ({
-  title,
+  title = "Mis tareas",
+  count,
   onAddPress,
 }: ProductHeaderProps) => {
   const { palette } = useThemeContext();
 
+  const summary =
+    count === 1 ? "1 tarea" : `${count} tareas`;
+
   return (
     <View style={styles.container}>
-      <View style={styles.textContainer}>
-        <Text
-          style={[
-            styles.subtitle,
-            { color: palette.texts.secondary },
-          ]}
-        >
-          Organiza tus actividades
-        </Text>
-
+      <View>
         <Text
           style={[
             styles.title,
@@ -39,10 +35,20 @@ export const ProductHeader = ({
         >
           {title}
         </Text>
+
+        <Text
+          style={[
+            styles.summary,
+            { color: palette.texts.secondary },
+          ]}
+        >
+          {summary}
+        </Text>
       </View>
 
       <Pressable
-        accessibilityLabel="Agregar nueva tarea"
+        accessibilityRole="button"
+        accessibilityLabel="Agregar tarea"
         onPress={onAddPress}
         style={({ pressed }) => [
           styles.addButton,
@@ -55,7 +61,7 @@ export const ProductHeader = ({
       >
         <Ionicons
           name="add"
-          size={28}
+          size={26}
           color={palette.texts.primaryButton}
         />
       </Pressable>
@@ -67,25 +73,23 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 10,
     marginBottom: 24,
   },
-  textContainer: {
-    flex: 1,
-    marginRight: 16,
-  },
-  subtitle: {
-    marginBottom: 3,
-    fontSize: 14,
-  },
   title: {
-    fontSize: 29,
+    fontSize: 28,
     fontWeight: "700",
   },
+  summary: {
+    marginTop: 3,
+    fontSize: 14,
+  },
   addButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 14,
   },
 });
