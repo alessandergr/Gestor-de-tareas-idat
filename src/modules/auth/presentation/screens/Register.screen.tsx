@@ -1,12 +1,20 @@
+import { FirebaseError } from "firebase/app";
+import {
+  createUserWithEmailAndPassword,
+  signOut,
+  updateProfile,
+} from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 
+import { firebaseAuth } from "@/config/firebase/firebase.config";
 import { CustomButton } from "@/core/components/CustomButton.component";
 import { InputField } from "@/core/components/InputField.components";
 import { useThemeContext } from "@/core/contexts/theme.context";
@@ -19,6 +27,25 @@ interface RegisterErrors {
   confirmation: string;
 }
 
+const getFirebaseMessage = (error: unknown) => {
+  if (!(error instanceof FirebaseError)) {
+    return "Ocurrió un error inesperado.";
+  }
+
+  switch (error.code) {
+    case "auth/email-already-in-use":
+      return "Este correo ya se encuentra registrado.";
+    case "auth/invalid-email":
+      return "El correo electrónico no es válido.";
+    case "auth/weak-password":
+      return "La contraseña es demasiado débil.";
+    case "auth/network-request-failed":
+      return "Revisa tu conexión a internet.";
+    default:
+      return "No se pudo crear la cuenta.";
+  }
+};
+
 export const RegisterScreen = () => {
   const router = useRouter();
   const { palette } = useThemeContext();
@@ -27,6 +54,7 @@ export const RegisterScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const [errors, setErrors] = useState<RegisterErrors>({
     name: "",
@@ -35,7 +63,7 @@ export const RegisterScreen = () => {
     confirmation: "",
   });
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     const cleanName = name.trim();
     const cleanEmail = email.trim();
 
@@ -72,7 +100,40 @@ export const RegisterScreen = () => {
       return;
     }
 
-    router.replace("/login");
+    setIsLoading(true);
+
+    try {
+      const credential =
+        await createUserWithEmailAndPassword(
+          firebaseAuth,
+          cleanEmail,
+          password,
+        );
+
+      await updateProfile(credential.user, {
+        displayName: cleanName,
+      });
+
+      await signOut(firebaseAuth);
+
+      Alert.alert(
+        "Cuenta creada",
+        "Tu cuenta fue registrada correctamente.",
+        [
+          {
+            text: "Continuar",
+            onPress: () => router.replace("/login"),
+          },
+        ],
+      );
+    } catch (error: unknown) {
+      Alert.alert(
+        "No se pudo registrar",
+        getFirebaseMessage(error),
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -143,21 +204,34 @@ export const RegisterScreen = () => {
 
         <View style={styles.button}>
           <CustomButton
-            title="Registrarme"
+            title={
+              isLoading
+                ? "Creando cuenta..."
+                : "Registrarme"
+            }
+            disabled={isLoading}
             onPress={handleRegister}
           />
         </View>
 
         <View style={styles.loginRow}>
-          <Text style={{ color: palette.texts.secondary }}>
+          <Text
+            style={{ color: palette.texts.secondary }}
+          >
             ¿Ya tienes una cuenta?
           </Text>
 
-          <Pressable onPress={() => router.replace("/login")}>
+          <Pressable
+            disabled={isLoading}
+            onPress={() => router.replace("/login")}
+          >
             <Text
               style={[
                 styles.link,
-                { color: palette.colors.primary.default },
+                {
+                  color:
+                    palette.colors.primary.default,
+                },
               ]}
             >
               Inicia sesión
