@@ -21,6 +21,7 @@ export const ProductListScreen = () => {
 
   const {
     dataStates,
+    handleView,
     handleEdit,
     handleAddPress,
     loadData,
@@ -32,9 +33,7 @@ export const ProductListScreen = () => {
     hiddenModal,
     isVisibleModal,
     deleteStatus,
-  } = useDeleteProduct({
-    reloadProducts: loadData,
-  });
+  } = useDeleteProduct({ reloadProducts: loadData });
 
   const renderItem = ({
     item,
@@ -42,25 +41,18 @@ export const ProductListScreen = () => {
     <ProductCard
       title={item.title}
       description={item.description}
+      onView={() => handleView(item)}
       onEdit={() => handleEdit(item)}
-      onDelete={() =>
-        handleDelete(item.id ?? "")
-      }
+      onDelete={() => handleDelete(item.id ?? "")}
     />
   );
 
-  if (
-    dataStates.isLoading ||
-    deleteStatus.isLoading
-  ) {
+  if (dataStates.isLoading || deleteStatus.isLoading) {
     return (
       <View
         style={[
           styles.loading,
-          {
-            backgroundColor:
-              palette.colors.background,
-          },
+          { backgroundColor: palette.colors.background },
         ]}
       >
         <ActivityIndicator
@@ -86,12 +78,11 @@ export const ProductListScreen = () => {
           keyExtractor={(item, index) =>
             item.id ?? `task-${index}`
           }
-          showsVerticalScrollIndicator={false}
           contentContainerStyle={[
             styles.list,
-            dataStates.data.length === 0 &&
-              styles.emptyList,
+            dataStates.data.length === 0 && styles.emptyList,
           ]}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <TaskListState
               isError={dataStates.isError}
@@ -102,8 +93,8 @@ export const ProductListScreen = () => {
       </Background>
 
       <CustomModal
-        onCancel={hiddenModal}
         visible={isVisibleModal}
+        onCancel={hiddenModal}
         onConfirm={confirmDelete}
         title="¿Eliminar tarea?"
         message="La tarea eliminada no podrá recuperarse."

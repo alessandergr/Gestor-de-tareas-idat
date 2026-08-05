@@ -6,6 +6,7 @@ import { useThemeContext } from "@/core/contexts/theme.context";
 interface ProductCardProps {
   title: string;
   description?: string;
+  onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
@@ -13,13 +14,11 @@ interface ProductCardProps {
 export const ProductCard = ({
   title,
   description,
+  onView,
   onEdit,
   onDelete,
 }: ProductCardProps) => {
   const { palette } = useThemeContext();
-
-  const detail =
-    description?.trim() || "Sin descripción";
 
   return (
     <View
@@ -36,10 +35,7 @@ export const ProductCard = ({
         <View
           style={[
             styles.iconBox,
-            {
-              backgroundColor:
-                palette.colors.surfaceSecondary,
-            },
+            { backgroundColor: palette.colors.surfaceSecondary },
           ]}
         >
           <Ionicons
@@ -52,10 +48,7 @@ export const ProductCard = ({
         <View style={styles.textBox}>
           <Text
             numberOfLines={1}
-            style={[
-              styles.title,
-              { color: palette.texts.primary },
-            ]}
+            style={[styles.title, { color: palette.texts.primary }]}
           >
             {title}
           </Text>
@@ -67,7 +60,7 @@ export const ProductCard = ({
               { color: palette.texts.secondary },
             ]}
           >
-            {detail}
+            {description?.trim() || "Sin descripción"}
           </Text>
         </View>
       </View>
@@ -80,16 +73,23 @@ export const ProductCard = ({
       />
 
       <View style={styles.actions}>
-        <Pressable
-          style={styles.action}
-          onPress={onEdit}
-        >
+        <Pressable style={styles.action} onPress={onView}>
+          <Ionicons
+            name="eye-outline"
+            size={18}
+            color={palette.colors.info}
+          />
+          <Text style={[styles.actionText, { color: palette.colors.info }]}>
+            Ver
+          </Text>
+        </Pressable>
+
+        <Pressable style={styles.action} onPress={onEdit}>
           <Ionicons
             name="create-outline"
             size={18}
             color={palette.colors.primary.dark}
           />
-
           <Text
             style={[
               styles.actionText,
@@ -100,22 +100,13 @@ export const ProductCard = ({
           </Text>
         </Pressable>
 
-        <Pressable
-          style={styles.action}
-          onPress={onDelete}
-        >
+        <Pressable style={styles.action} onPress={onDelete}>
           <Ionicons
             name="trash-outline"
             size={18}
             color={palette.colors.error}
           />
-
-          <Text
-            style={[
-              styles.actionText,
-              { color: palette.colors.error },
-            ]}
-          >
+          <Text style={[styles.actionText, { color: palette.colors.error }]}>
             Eliminar
           </Text>
         </Pressable>
@@ -132,7 +123,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flexDirection: "row",
-    alignItems: "flex-start",
   },
   iconBox: {
     width: 44,
@@ -161,16 +151,15 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 22,
+    gap: 14,
   },
   action: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 2,
+    gap: 5,
   },
   actionText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
   },
 });

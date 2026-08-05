@@ -1,13 +1,8 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+
 import { getProductUseCase } from "../../di/product.dependencies";
 import { ProductEntity } from "../../domain/entities/product.entity";
-
-const DATA_STATES_DEFAULT = {
-  isLoading: false,
-  isError: false,
-  data: [],
-};
 
 interface DataStates {
   isLoading: boolean;
@@ -15,32 +10,51 @@ interface DataStates {
   data: ProductEntity[];
 }
 
+const DEFAULT_STATE: DataStates = {
+  isLoading: false,
+  isError: false,
+  data: [],
+};
+
 export const useProductList = () => {
-  const [dataStates, setDataStates] = useState<DataStates>(DATA_STATES_DEFAULT);
   const router = useRouter();
+  const [dataStates, setDataStates] =
+    useState<DataStates>(DEFAULT_STATE);
 
   const handleAddPress = () => {
     router.push("/products/new");
   };
 
-  const handleEdit = (post: ProductEntity) => {
+  const handleView = (task: ProductEntity) => {
     router.push({
-      pathname: `/products/[id]`,
+      pathname: "/products/detail",
       params: {
-        id: post.id,
-        title: post.title,
-        description: post.description,
+        id: task.id ?? "",
+        title: task.title,
+        description: task.description,
+      },
+    });
+  };
+
+  const handleEdit = (task: ProductEntity) => {
+    router.push({
+      pathname: "/products/[id]",
+      params: {
+        id: task.id ?? "",
+        title: task.title,
+        description: task.description,
       },
     });
   };
 
   const loadData = async () => {
-    setDataStates({ ...DATA_STATES_DEFAULT, isLoading: true });
+    setDataStates({ ...DEFAULT_STATE, isLoading: true });
+
     try {
       const result = await getProductUseCase.execute();
-      setDataStates({ ...DATA_STATES_DEFAULT, data: result });
-    } catch (error) {
-      setDataStates({ ...DATA_STATES_DEFAULT, isError: true });
+      setDataStates({ ...DEFAULT_STATE, data: result });
+    } catch {
+      setDataStates({ ...DEFAULT_STATE, isError: true });
     }
   };
 
@@ -49,8 +63,9 @@ export const useProductList = () => {
   }, []);
 
   return {
-    loadData,
     dataStates,
+    loadData,
+    handleView,
     handleEdit,
     handleAddPress,
   };
