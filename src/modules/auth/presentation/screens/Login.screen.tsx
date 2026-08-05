@@ -1,12 +1,9 @@
+import { FirebaseError } from "firebase/app";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-
+import { Alert, Pressable, StyleSheet, Text, View,} from "react-native";
+import { firebaseAuth } from "@/config/firebase/firebase.config";
 import { CustomButton } from "@/core/components/CustomButton.component";
 import { InputField } from "@/core/components/InputField.components";
 import { useThemeContext } from "@/core/contexts/theme.context";
@@ -17,19 +14,43 @@ interface LoginErrors {
   password: string;
 }
 
+const getLoginErrorMessage = (error: unknown) => {
+  if (!(error instanceof FirebaseError)) {
+    return "Ocurrió un error inesperado.";
+  }
+
+  switch (error.code) {
+    case "auth/invalid-credential":
+      return "El correo o la contraseña son incorrectos.";
+
+    case "auth/invalid-email":
+      return "El correo electrónico no es válido.";
+
+    case "auth/too-many-requests":
+      return "Se realizaron demasiados intentos. Intenta más tarde.";
+
+    case "auth/network-request-failed":
+      return "Revisa tu conexión a internet.";
+
+    default:
+      return "No se pudo iniciar sesión.";
+  }
+};
+
 export const LoginScreen = () => {
   const router = useRouter();
   const { palette } = useThemeContext();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const [errors, setErrors] = useState<LoginErrors>({
     email: "",
     password: "",
   });
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const cleanEmail = email.trim();
 
     const nextErrors: LoginErrors = {
@@ -39,6 +60,7 @@ export const LoginScreen = () => {
           : !/^\S+@\S+\.\S+$/.test(cleanEmail)
             ? "Ingrese un correo válido"
             : "",
+
       password:
         password.length === 0
           ? "Ingrese su contraseña"
@@ -53,7 +75,24 @@ export const LoginScreen = () => {
       return;
     }
 
-    router.replace("/products");
+    setIsLoading(true);
+
+    try {
+      await signInWithEmailAndPassword(
+        firebaseAuth,
+        cleanEmail,
+        password,
+      );
+
+      router.replace("/products");
+    } catch (error: unknown) {
+      Alert.alert(
+        "No se pudo iniciar sesión",
+        getLoginErrorMessage(error),
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -69,8 +108,10 @@ export const LoginScreen = () => {
           error={errors.email}
           keyboardType="email-address"
           autoCapitalize="none"
+          editable={!isLoading}
           onChangeText={(value) => {
             setEmail(value);
+
             setErrors((current) => ({
               ...current,
               email: "",
@@ -84,8 +125,10 @@ export const LoginScreen = () => {
           value={password}
           error={errors.password}
           secureTextEntry
+          editable={!isLoading}
           onChangeText={(value) => {
             setPassword(value);
+
             setErrors((current) => ({
               ...current,
               password: "",
@@ -95,21 +138,37 @@ export const LoginScreen = () => {
 
         <View style={styles.button}>
           <CustomButton
-            title="Iniciar sesión"
+            title={
+              isLoading
+                ? "Iniciando sesión..."
+                : "Iniciar sesión"
+            }
+            disabled={isLoading}
             onPress={handleLogin}
           />
         </View>
 
         <View style={styles.registerRow}>
-          <Text style={{ color: palette.texts.secondary }}>
+          <Text
+            style={{
+              color: palette.texts.secondary,
+            }}
+          >
             ¿No tienes una cuenta?
           </Text>
 
-          <Pressable onPress={() => router.push("/register")}>
+          <Pressable
+            disabled={isLoading}
+            onPress={() => router.push("/register")}
+          >
             <Text
               style={[
                 styles.link,
-                { color: palette.colors.primary.default },
+                {
+                  color:
+                    palette.colors.primary.default,
+                  opacity: isLoading ? 0.5 : 1,
+                },
               ]}
             >
               Regístrate
