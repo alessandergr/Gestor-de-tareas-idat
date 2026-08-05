@@ -1,6 +1,6 @@
-import { ProductFormHeader } from "../components/ProductFormHeader.component";
-import { ProductForm } from "../components/ProductForm.component";
 import { Background } from "@/core/components/Background.component";
+import { ProductForm } from "../components/ProductForm.component";
+import { ProductFormHeader } from "../components/ProductFormHeader.component";
 import { useNewProduct } from "../hooks/useNewProduct.hook";
 
 export const NewProductScreen = () => {
@@ -11,17 +11,20 @@ export const NewProductScreen = () => {
     onChangeTitle,
     product,
   } = useNewProduct();
+
   return (
     <Background>
-      <ProductFormHeader title="Crear producto" />
+      <ProductFormHeader title="Nueva tarea" />
+
       <ProductForm
         title={product.title}
+        description={product.description}
+        submitLabel="Crear tarea"
         onSubmit={handleSubmit}
         onChangeTitle={onChangeTitle}
+        onChangeMessage={onChangeDescription}
         loading={dataStates.isLoading}
         disabled={dataStates.isLoading}
-        description={product.description}
-        onChangeMessage={onChangeDescription}
       />
     </Background>
   );

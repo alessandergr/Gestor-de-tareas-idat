@@ -1,19 +1,19 @@
-import { CustomButton } from "@/core/components/CustomButton.component";
-import { InputField } from "@/core/components/InputField.components";
-import { FC } from "react";
+import { useState } from "react";
 import {
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 
+import { CustomButton } from "@/core/components/CustomButton.component";
+import { InputField } from "@/core/components/InputField.components";
+
 interface ProductFormProps {
-  title?: string;
-  description?: string;
+  title: string;
+  description: string;
+  submitLabel: string;
   onSubmit: () => void;
   disabled?: boolean;
   loading?: boolean;
@@ -21,52 +21,110 @@ interface ProductFormProps {
   onChangeMessage: (description: string) => void;
 }
 
-export const ProductForm: FC<ProductFormProps> = ({
+interface FormErrors {
+  title: string;
+  description: string;
+}
+
+export const ProductForm = ({
   title,
-  onSubmit,
   description,
-  loading,
+  submitLabel,
+  onSubmit,
   disabled,
+  loading,
   onChangeTitle,
   onChangeMessage,
-}) => {
+}: ProductFormProps) => {
+  const [errors, setErrors] = useState<FormErrors>({
+    title: "",
+    description: "",
+  });
+
+  const validateAndSubmit = () => {
+    const cleanTitle = title.trim();
+    const cleanDescription = description.trim();
+
+    const nextErrors: FormErrors = {
+      title:
+        cleanTitle.length === 0
+          ? "Ingrese un título"
+          : cleanTitle.length < 3
+            ? "El título debe tener al menos 3 caracteres"
+            : "",
+      description:
+        cleanDescription.length === 0
+          ? "Ingrese una descripción"
+          : "",
+    };
+
+    setErrors(nextErrors);
+
+    if (nextErrors.title || nextErrors.description) {
+      return;
+    }
+
+    onSubmit();
+  };
+
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={20}
       style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.formContainer}>
-            <InputField
-              onChangeText={onChangeTitle}
-              value={title}
-              label="Título"
-              placeholder="Escribe un título"
-            />
-            <InputField
-              value={description}
-              onChangeText={onChangeMessage}
-              label="Mensaje"
-              placeholder="¿Qué está pasando?"
-              multiline
-              numberOfLines={600}
-              textAlignVertical="top"
-            />
-          </View>
-          <View style={{ marginTop: 20 }}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.form}>
+          <InputField
+            label="Título"
+            placeholder="Escribe un título"
+            value={title}
+            maxLength={60}
+            error={errors.title}
+            onChangeText={(value) => {
+              onChangeTitle(value);
+
+              if (errors.title) {
+                setErrors((current) => ({
+                  ...current,
+                  title: "",
+                }));
+              }
+            }}
+          />
+
+          <InputField
+            label="Descripción"
+            placeholder="Escribe una descripción"
+            value={description}
+            maxLength={300}
+            multiline
+            error={errors.description}
+            onChangeText={(value) => {
+              onChangeMessage(value);
+
+              if (errors.description) {
+                setErrors((current) => ({
+                  ...current,
+                  description: "",
+                }));
+              }
+            }}
+          />
+
+          <View style={styles.buttonContainer}>
             <CustomButton
-              title={loading ? "Cargando..." : "Publicar"}
-              onPress={onSubmit}
-              disabled={disabled}
+              title={loading ? "Guardando..." : submitLabel}
+              onPress={validateAndSubmit}
+              disabled={disabled || loading}
             />
           </View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
@@ -75,11 +133,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: "space-between",
+  content: {
+    paddingTop: 12,
+    paddingBottom: 32,
   },
-  formContainer: {
-    gap: 24,
+  form: {
+    gap: 20,
+  },
+  buttonContainer: {
+    height: 52,
   },
 });

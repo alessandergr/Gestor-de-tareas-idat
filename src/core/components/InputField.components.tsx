@@ -5,55 +5,90 @@ import {
   TextInputProps,
   View,
 } from "react-native";
+
 import { useThemeContext } from "../contexts/theme.context";
 
 interface InputFieldProps extends TextInputProps {
   label?: string;
+  error?: string;
 }
 
-export const InputField = ({ label, ...props }: InputFieldProps) => {
+export const InputField = ({
+  label,
+  error,
+  style,
+  multiline,
+  ...props
+}: InputFieldProps) => {
   const { palette } = useThemeContext();
 
-  const renderInput = () => {
-    return (
+  return (
+    <View style={styles.container}>
+      {label ? (
+        <Text
+          style={[
+            styles.label,
+            { color: palette.texts.primary },
+          ]}
+        >
+          {label}
+        </Text>
+      ) : null}
+
       <TextInput
         {...props}
+        multiline={multiline}
+        placeholderTextColor={palette.texts.tertiary}
         style={[
           styles.input,
+          multiline && styles.multiline,
           {
-            borderColor: palette.colors.border,
-            height: props.multiline ? 250 : undefined,
+            color: palette.texts.primary,
+            backgroundColor: palette.colors.surface,
+            borderColor: error
+              ? palette.colors.error
+              : palette.colors.border,
           },
+          style,
         ]}
       />
-    );
-  };
 
-  if (label && label.length > 0) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.label}>{label}</Text>
-        {renderInput()}
-      </View>
-    );
-  }
-
-  return renderInput();
+      {error ? (
+        <Text
+          style={[
+            styles.error,
+            { color: palette.texts.error },
+          ]}
+        >
+          {error}
+        </Text>
+      ) : null}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
-    gap: 8,
+    gap: 7,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: 15,
+    fontWeight: "600",
   },
   input: {
+    minHeight: 52,
     borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 16,
+  },
+  multiline: {
+    height: 120,
+    textAlignVertical: "top",
+  },
+  error: {
+    marginLeft: 3,
+    fontSize: 13,
   },
 });
