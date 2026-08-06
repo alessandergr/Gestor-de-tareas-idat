@@ -30,7 +30,7 @@ export const AuthContainer = ({
         styles.container,
         { backgroundColor: palette.colors.background },
       ]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
         contentContainerStyle={styles.content}

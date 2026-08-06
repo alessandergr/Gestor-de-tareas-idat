@@ -1,12 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import {
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from "react-native";
+import { signOut } from "firebase/auth";
+import { Alert, StyleSheet, Switch, Text, View} from "react-native";
 
+import { firebaseAuth } from "@/config/firebase/firebase.config";
 import { Background } from "@/core/components/Background.component";
 import { CustomButton } from "@/core/components/CustomButton.component";
 import { useThemeContext } from "@/core/contexts/theme.context";
@@ -15,10 +12,19 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { palette, toggleTheme } = useThemeContext();
 
+  const user = firebaseAuth.currentUser;
   const isDarkMode = palette.schema === "dark";
 
-  const handleLogout = () => {
-    router.replace("/login");
+  const handleLogout = async () => {
+    try {
+      await signOut(firebaseAuth);
+      router.replace("/login");
+    } catch {
+      Alert.alert(
+        "No se pudo cerrar sesión",
+        "Intenta nuevamente.",
+      );
+    }
   };
 
   return (
@@ -64,7 +70,7 @@ export default function ProfileScreen() {
             { color: palette.texts.primary },
           ]}
         >
-          Usuario
+          {user?.displayName ?? "Usuario"}
         </Text>
 
         <Text
@@ -73,7 +79,7 @@ export default function ProfileScreen() {
             { color: palette.texts.secondary },
           ]}
         >
-          Cuenta pendiente de vincular
+          {user?.email ?? "Sin correo registrado"}
         </Text>
       </View>
 
@@ -105,7 +111,11 @@ export default function ProfileScreen() {
           ]}
         >
           <Ionicons
-            name={isDarkMode ? "moon-outline" : "sunny-outline"}
+            name={
+              isDarkMode
+                ? "moon-outline"
+                : "sunny-outline"
+            }
             size={22}
             color={palette.colors.primary.default}
           />
@@ -151,7 +161,7 @@ export default function ProfileScreen() {
           title="Cerrar sesión"
           color="error"
           variant="outlined"
-          onPress={handleLogout}
+          onPress={() => void handleLogout()}
         />
       </View>
     </Background>
