@@ -3,7 +3,7 @@ import { getDatabase } from "@/config/database/database.config";
 import { ProductEntity } from "../../../domain/entities/product.entity";
 import { ProductModel } from "../../models/product.model";
 
-type PendingAction = "create" | "update" | "delete";
+type PendingAction = | "create" | "update" | "delete" | "synced";
 
 interface ProductRow {
   id: string;

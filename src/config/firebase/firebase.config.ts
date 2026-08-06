@@ -1,13 +1,20 @@
-import { getApp, getApps, initializeApp } from "firebase/app";
+import {
+  getApp,
+  getApps,
+  initializeApp,
+} from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB-57YkBqYLpWIm0awuZnR51vQbOBATU70",
   authDomain: "gestor-tareas-idat.firebaseapp.com",
   projectId: "gestor-tareas-idat",
-  storageBucket: "gestor-tareas-idat.firebasestorage.app",
+  storageBucket:
+    "gestor-tareas-idat.firebasestorage.app",
   messagingSenderId: "127944042779",
-  appId: "1:127944042779:web:f2672779df92e590c14bbe",
+  appId:
+    "1:127944042779:web:f2672779df92e590c14bbe",
 };
 
 const firebaseApp =
@@ -16,3 +23,6 @@ const firebaseApp =
     : getApp();
 
 export const firebaseAuth = getAuth(firebaseApp);
+
+export const firebaseDb =
+  getFirestore(firebaseApp);
