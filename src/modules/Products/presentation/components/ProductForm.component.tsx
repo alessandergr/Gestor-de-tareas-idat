@@ -10,15 +10,19 @@ import {
 import { CustomButton } from "@/core/components/CustomButton.component";
 import { InputField } from "@/core/components/InputField.components";
 
+import { TaskImageField } from "./TaskImageField.component";
+
 interface ProductFormProps {
   title: string;
   description: string;
+  imageUri: string;
   submitLabel: string;
   onSubmit: () => void;
   disabled?: boolean;
   loading?: boolean;
   onChangeTitle: (title: string) => void;
   onChangeMessage: (description: string) => void;
+  onChangeImage: (uri: string) => void;
 }
 
 interface FormErrors {
@@ -29,12 +33,14 @@ interface FormErrors {
 export const ProductForm = ({
   title,
   description,
+  imageUri,
   submitLabel,
   onSubmit,
   disabled,
   loading,
   onChangeTitle,
   onChangeMessage,
+  onChangeImage,
 }: ProductFormProps) => {
   const [errors, setErrors] = useState<FormErrors>({
     title: "",
@@ -70,13 +76,14 @@ export const ProductForm = ({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={
+        Platform.OS === "ios"
+          ? "padding"
+          : undefined
+      }
     >
       <ScrollView
         contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        showsVerticalScrollIndicator={false}
       >
         <View style={styles.form}>
           <InputField
@@ -116,9 +123,18 @@ export const ProductForm = ({
             }}
           />
 
+          <TaskImageField
+            imageUri={imageUri}
+            onChangeImage={onChangeImage}
+          />
+
           <View style={styles.buttonContainer}>
             <CustomButton
-              title={loading ? "Guardando..." : submitLabel}
+              title={
+                loading
+                  ? "Guardando..."
+                  : submitLabel
+              }
               onPress={validateAndSubmit}
               disabled={disabled || loading}
             />
@@ -135,7 +151,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingTop: 12,
-    paddingBottom: 32,
+    paddingBottom: 120,
   },
   form: {
     gap: 20,

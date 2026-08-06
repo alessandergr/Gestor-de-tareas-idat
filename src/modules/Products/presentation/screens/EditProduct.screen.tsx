@@ -10,6 +10,8 @@ export const EditProductScreen = () => {
     onChangeTitle,
     product,
     dataStates,
+    imageUri,
+    onChangeImage,
   } = useEditProduct();
 
   return (
@@ -19,6 +21,8 @@ export const EditProductScreen = () => {
       <ProductForm
         title={product.title}
         description={product.description}
+        imageUri={imageUri}
+        onChangeImage={onChangeImage}
         submitLabel="Guardar cambios"
         onSubmit={handleSubmit}
         onChangeTitle={onChangeTitle}

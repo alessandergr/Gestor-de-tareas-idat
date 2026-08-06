@@ -3,30 +3,41 @@ import { getDatabase } from "@/config/database/database.config";
 import { ProductEntity } from "../../../domain/entities/product.entity";
 import { ProductModel } from "../../models/product.model";
 
-type PendingAction = | "create" | "update" | "delete" | "synced";
+type PendingAction =
+  | "create"
+  | "update"
+  | "delete"
+  | "synced";
 
 interface ProductRow {
   id: string;
   title: string;
   description: string;
+  image_url: string | null;
   pending_action: PendingAction | null;
 }
 
 export interface ProductLocalDataSource {
   getProducts: () => Promise<ProductModel[]>;
+
   replaceProducts: (
     products: ProductModel[],
   ) => Promise<void>;
+
   saveProduct: (
     product: ProductModel,
   ) => Promise<void>;
+
   removeProduct: (id: string) => Promise<void>;
+
   createPendingProduct: (
     product: ProductEntity,
   ) => Promise<ProductModel>;
+
   updatePendingProduct: (
     product: ProductEntity,
   ) => Promise<ProductModel>;
+
   deletePendingProduct: (
     id: string,
   ) => Promise<ProductModel>;
@@ -40,7 +51,12 @@ export class ProductLocalDataSourceImpl
 
     const rows =
       await database.getAllAsync<ProductRow>(`
-        SELECT id, title, description, pending_action
+        SELECT
+          id,
+          title,
+          description,
+          image_url,
+          pending_action
         FROM tasks
         WHERE is_deleted = 0
         ORDER BY rowid DESC
@@ -52,6 +68,7 @@ export class ProductLocalDataSourceImpl
           row.title,
           row.description,
           row.id,
+          row.image_url ?? undefined,
         ),
     );
   }
@@ -63,11 +80,16 @@ export class ProductLocalDataSourceImpl
 
     await database.withTransactionAsync(async () => {
       await database.runAsync(
-        "DELETE FROM tasks WHERE pending_action IS NULL",
+        `
+          DELETE FROM tasks
+          WHERE pending_action IS NULL
+        `,
       );
 
       for (const product of products) {
-        if (!product.id) continue;
+        if (!product.id) {
+          continue;
+        }
 
         await database.runAsync(
           `
@@ -75,14 +97,16 @@ export class ProductLocalDataSourceImpl
               id,
               title,
               description,
+              image_url,
               pending_action,
               is_deleted
             )
-            VALUES (?, ?, ?, NULL, 0)
+            VALUES (?, ?, ?, ?, NULL, 0)
           `,
           product.id,
           product.title,
           product.description,
+          product.imageUrl ?? null,
         );
       }
     });
@@ -91,7 +115,9 @@ export class ProductLocalDataSourceImpl
   async saveProduct(
     product: ProductModel,
   ): Promise<void> {
-    if (!product.id) return;
+    if (!product.id) {
+      return;
+    }
 
     const database = await getDatabase();
 
@@ -101,14 +127,16 @@ export class ProductLocalDataSourceImpl
           id,
           title,
           description,
+          image_url,
           pending_action,
           is_deleted
         )
-        VALUES (?, ?, ?, NULL, 0)
+        VALUES (?, ?, ?, ?, NULL, 0)
       `,
       product.id,
       product.title,
       product.description,
+      product.imageUrl ?? null,
     );
   }
 
@@ -133,20 +161,23 @@ export class ProductLocalDataSourceImpl
           id,
           title,
           description,
+          image_url,
           pending_action,
           is_deleted
         )
-        VALUES (?, ?, ?, 'create', 0)
+        VALUES (?, ?, ?, ?, 'create', 0)
       `,
       id,
       product.title,
       product.description,
+      product.imageUrl ?? null,
     );
 
     return new ProductModel(
       product.title,
       product.description,
       id,
+      product.imageUrl,
     );
   }
 
@@ -177,13 +208,16 @@ export class ProductLocalDataSourceImpl
     await database.runAsync(
       `
         UPDATE tasks
-        SET title = ?,
-            description = ?,
-            pending_action = ?
+        SET
+          title = ?,
+          description = ?,
+          image_url = ?,
+          pending_action = ?
         WHERE id = ?
       `,
       product.title,
       product.description,
+      product.imageUrl ?? null,
       action,
       product.id,
     );
@@ -192,6 +226,7 @@ export class ProductLocalDataSourceImpl
       product.title,
       product.description,
       product.id,
+      product.imageUrl,
     );
   }
 
@@ -219,8 +254,9 @@ export class ProductLocalDataSourceImpl
       await database.runAsync(
         `
           UPDATE tasks
-          SET pending_action = 'delete',
-              is_deleted = 1
+          SET
+            pending_action = 'delete',
+            is_deleted = 1
           WHERE id = ?
         `,
         id,
@@ -231,6 +267,7 @@ export class ProductLocalDataSourceImpl
       current.title,
       current.description,
       current.id,
+      current.image_url ?? undefined,
     );
   }
 }

@@ -10,6 +10,8 @@ export const NewProductScreen = () => {
     onChangeDescription,
     onChangeTitle,
     product,
+    imageUri,
+    onChangeImage,
   } = useNewProduct();
 
   return (
@@ -20,6 +22,8 @@ export const NewProductScreen = () => {
         title={product.title}
         description={product.description}
         submitLabel="Crear tarea"
+        imageUri={imageUri}
+        onChangeImage={onChangeImage}
         onSubmit={handleSubmit}
         onChangeTitle={onChangeTitle}
         onChangeMessage={onChangeDescription}

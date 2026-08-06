@@ -12,6 +12,7 @@ interface PendingTaskRow {
   id: string;
   title: string;
   description: string;
+  image_url: string | null;
   pending_action: PendingAction;
 }
 
@@ -20,7 +21,9 @@ let isSyncing = false;
 export const syncPendingTasks = async (
   userId: string,
 ): Promise<void> => {
-  if (isSyncing) return;
+  if (isSyncing) {
+    return;
+  }
 
   isSyncing = true;
 
@@ -29,7 +32,12 @@ export const syncPendingTasks = async (
 
     const tasks =
       await database.getAllAsync<PendingTaskRow>(`
-        SELECT id, title, description, pending_action
+        SELECT
+          id,
+          title,
+          description,
+          image_url,
+          pending_action
         FROM tasks
         WHERE pending_action IN (
           'create',
@@ -53,6 +61,7 @@ export const syncPendingTasks = async (
         {
           title: task.title,
           description: task.description,
+          imageUrl: task.image_url ?? null,
           isDeleted:
             task.pending_action === "delete",
           updatedAt: serverTimestamp(),
@@ -63,8 +72,9 @@ export const syncPendingTasks = async (
       await database.runAsync(
         `
           UPDATE tasks
-          SET pending_action = 'synced',
-              is_deleted = ?
+          SET
+            pending_action = 'synced',
+            is_deleted = ?
           WHERE id = ?
         `,
         task.pending_action === "delete" ? 1 : 0,

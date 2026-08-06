@@ -18,6 +18,7 @@ const DEFAULT_STATE: DataStates = {
 
 export const useProductList = () => {
   const router = useRouter();
+
   const [dataStates, setDataStates] =
     useState<DataStates>(DEFAULT_STATE);
 
@@ -32,6 +33,7 @@ export const useProductList = () => {
         id: task.id ?? "",
         title: task.title,
         description: task.description,
+        imageUrl: task.imageUrl ?? "",
       },
     });
   };
@@ -43,23 +45,35 @@ export const useProductList = () => {
         id: task.id ?? "",
         title: task.title,
         description: task.description,
+        imageUrl: task.imageUrl ?? "",
       },
     });
   };
 
   const loadData = async () => {
-    setDataStates({ ...DEFAULT_STATE, isLoading: true });
+    setDataStates({
+      ...DEFAULT_STATE,
+      isLoading: true,
+    });
 
     try {
-      const result = await getProductUseCase.execute();
-      setDataStates({ ...DEFAULT_STATE, data: result });
+      const result =
+        await getProductUseCase.execute();
+
+      setDataStates({
+        ...DEFAULT_STATE,
+        data: result,
+      });
     } catch {
-      setDataStates({ ...DEFAULT_STATE, isError: true });
+      setDataStates({
+        ...DEFAULT_STATE,
+        isError: true,
+      });
     }
   };
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []);
 
   return {

@@ -6,14 +6,29 @@ export class ProductModel implements ProductEntity {
     public title: string,
     public description: string,
     public id?: string,
+    public imageUrl?: string,
   ) {}
 
-  static fromDTO(dto: ProductDtoResponse): ProductModel {
-    return new ProductModel(dto.title, dto.description, dto.id);
+  static fromDTO(
+    dto: ProductDtoResponse,
+  ): ProductModel {
+    return new ProductModel(
+      dto.title,
+      dto.description,
+      dto.id,
+      dto.imageUrl,
+    );
   }
 
-  static fromEntity(product: ProductEntity): ProductModel {
-    return new ProductModel(product.title, product.description, product.id);
+  static fromEntity(
+    product: ProductEntity,
+  ): ProductModel {
+    return new ProductModel(
+      product.title,
+      product.description,
+      product.id,
+      product.imageUrl,
+    );
   }
 
   toDTO(): ProductDtoResponse {
@@ -21,6 +36,7 @@ export class ProductModel implements ProductEntity {
       id: this.id ?? "",
       title: this.title,
       description: this.description,
+      imageUrl: this.imageUrl,
     };
   }
 }
