@@ -6,13 +6,17 @@ import {
   setDoc,
 } from "firebase/firestore";
 
-type PendingAction = "create" | "update" | "delete";
+type PendingAction =
+  | "create"
+  | "update"
+  | "delete";
 
 interface PendingTaskRow {
   id: string;
   title: string;
   description: string;
   image_url: string | null;
+  user_id: string;
   pending_action: PendingAction;
 }
 
@@ -31,21 +35,27 @@ export const syncPendingTasks = async (
     const database = await getDatabase();
 
     const tasks =
-      await database.getAllAsync<PendingTaskRow>(`
-        SELECT
-          id,
-          title,
-          description,
-          image_url,
-          pending_action
-        FROM tasks
-        WHERE pending_action IN (
-          'create',
-          'update',
-          'delete'
-        )
-        ORDER BY rowid ASC
-      `);
+      await database.getAllAsync<PendingTaskRow>(
+        `
+          SELECT
+            id,
+            title,
+            description,
+            image_url,
+            user_id,
+            pending_action
+          FROM tasks
+          WHERE
+            user_id = ?
+            AND pending_action IN (
+              'create',
+              'update',
+              'delete'
+            )
+          ORDER BY rowid ASC
+        `,
+        userId,
+      );
 
     for (const task of tasks) {
       const taskReference = doc(
@@ -75,10 +85,15 @@ export const syncPendingTasks = async (
           SET
             pending_action = 'synced',
             is_deleted = ?
-          WHERE id = ?
+          WHERE
+            id = ?
+            AND user_id = ?
         `,
-        task.pending_action === "delete" ? 1 : 0,
+        task.pending_action === "delete"
+          ? 1
+          : 0,
         task.id,
+        userId,
       );
     }
   } finally {

@@ -48,6 +48,60 @@ export const TaskImageField = ({
     }
   };
 
+  const chooseFromGallery = async () => {
+    const permission =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        "Permiso necesario",
+        "Debes permitir el acceso a tus imágenes.",
+      );
+      return;
+    }
+
+    const result =
+      await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: false,
+        quality: 0.7,
+      });
+
+    if (
+      !result.canceled &&
+      result.assets[0]?.uri
+    ) {
+      onChangeImage(result.assets[0].uri);
+    }
+  };
+
+  const selectImageSource = () => {
+    Alert.alert(
+      imageUri
+        ? "Cambiar fotografía"
+        : "Agregar fotografía",
+      "Selecciona una opción",
+      [
+        {
+          text: "Cámara",
+          onPress: () => {
+            void takePhoto();
+          },
+        },
+        {
+          text: "Galería",
+          onPress: () => {
+            void chooseFromGallery();
+          },
+        },
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+      ],
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Text
@@ -99,11 +153,11 @@ export const TaskImageField = ({
         <CustomButton
           title={
             imageUri
-              ? "Cambiar fotografía"
-              : "Tomar fotografía"
+              ? "Cambiar foto"
+              : "Agregar foto"
           }
           variant="outlined"
-          onPress={() => void takePhoto()}
+          onPress={selectImageSource}
         />
       </View>
     </View>
@@ -134,6 +188,6 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   button: {
-    height: 54,
+    height: 58,
   },
 });
