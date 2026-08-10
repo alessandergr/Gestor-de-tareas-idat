@@ -10,22 +10,22 @@ const CLOUDINARY_URL =
 
 const UPLOAD_PRESET = "gestor_tareas";
 
-export const uploadTaskImage = async (
+// Esta función sirve para subir cualquier imagen de la aplicación
+const uploadImage = async (
   imageUri: string,
+  name: string,
 ): Promise<string> => {
   const formData = new FormData();
 
-  // Preparamos la foto para mandarla a Cloudinary
   formData.append(
     "file",
     {
       uri: imageUri,
-      name: `tarea-${Date.now()}.jpg`,
+      name: `${name}-${Date.now()}.jpg`,
       type: "image/jpeg",
     } as unknown as Blob,
   );
 
-  // Este preset permite subir la foto sin guardar claves privadas en la app
   formData.append("upload_preset", UPLOAD_PRESET);
 
   const response = await fetch(CLOUDINARY_URL, {
@@ -38,11 +38,24 @@ export const uploadTaskImage = async (
 
   if (!response.ok || !result.secure_url) {
     throw new Error(
-      result.error?.message ??
-        "No se pudo subir la fotografía",
+      result.error?.message ?? "No se pudo subir la imagen",
     );
   }
 
-  // Cloudinary devuelve la URL que luego guardamos con la tarea
+  // Cloudinary devuelve la URL que luego guardamos en Firestore
   return result.secure_url;
+};
+
+// Las tareas siguen usando la misma función que ya teníamos
+export const uploadTaskImage = (
+  imageUri: string,
+): Promise<string> => {
+  return uploadImage(imageUri, "tarea");
+};
+
+// Esta nueva función será para la foto del perfil
+export const uploadProfileImage = (
+  imageUri: string,
+): Promise<string> => {
+  return uploadImage(imageUri, "perfil");
 };

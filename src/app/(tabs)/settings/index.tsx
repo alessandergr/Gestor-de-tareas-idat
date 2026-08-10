@@ -1,26 +1,58 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
-import { Alert, ScrollView, StyleSheet, Switch, Text, View, } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 
 import { firebaseAuth } from "@/config/firebase/firebase.config";
 import { Background } from "@/core/components/Background.component";
 import { CustomButton } from "@/core/components/CustomButton.component";
 import { useThemeContext } from "@/core/contexts/theme.context";
+import {
+  getUserProfile,
+  type UserProfileData,
+} from "@/modules/auth/data/services/user-profile.service";
+import { ProfileCard } from "@/modules/auth/presentation/components/ProfileCard.component";
+import { useProfilePhoto } from "@/modules/auth/presentation/hooks/useProfilePhoto.hook";
 
 export default function ProfileScreen() {
-  const router = useRouter();
   const { palette, toggleTheme } = useThemeContext();
-
-  // Usuario que inició sesión y tema actual
   const user = firebaseAuth.currentUser;
   const isDarkMode = palette.schema === "dark";
 
-  // Cierra la sesión y regresa al login
+  // Acá guardamos los datos del perfil que vienen desde Firestore
+  const [profile, setProfile] =
+    useState<UserProfileData | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Buscamos el perfil usando el UID de la cuenta que tiene sesión abierta
+    void getUserProfile(user.uid)
+      .then(setProfile)
+      .catch(() => undefined);
+  }, [user]);
+
+  // Este hook se encarga de cámara, Cloudinary y guardar la nueva foto
+  const { isUploadingPhoto, takePhoto } = useProfilePhoto({
+    userId: user?.uid,
+    onPhotoUpdated: (photoUrl) => {
+      setProfile((current) =>
+        current ? { ...current, photoUrl } : current,
+      );
+    },
+  });
+
   const handleLogout = async () => {
     try {
+      // RootLayout detecta que ya no hay usuario y vuelve al login
       await signOut(firebaseAuth);
-      router.replace("/login");
     } catch {
       Alert.alert(
         "No se pudo cerrar sesión",
@@ -44,102 +76,17 @@ export default function ProfileScreen() {
           Mi perfil
         </Text>
 
-        {/* Datos del usuario */}
-        <View
-          style={[
-            styles.profileCard,
-            {
-              backgroundColor: palette.colors.surface,
-              borderColor: palette.colors.border,
-              ...palette.shadows.sm,
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.avatar,
-              {
-                backgroundColor:
-                  palette.colors.surfaceSecondary,
-              },
-            ]}
-          >
-            <Ionicons
-              name="person-outline"
-              size={42}
-              color={palette.colors.primary.default}
-            />
-          </View>
+        {/* La tarjeta muestra la información y abre la cámara al tocar el avatar */}
+        <ProfileCard
+          profile={profile}
+          fallbackName={user?.displayName ?? "Usuario"}
+          fallbackEmail={
+            user?.email ?? "Sin correo registrado"
+          }
+          isUploadingPhoto={isUploadingPhoto}
+          onPhotoPress={() => void takePhoto()}
+        />
 
-          <Text
-            style={[
-              styles.name,
-              { color: palette.texts.primary },
-            ]}
-          >
-            {user?.displayName ?? "Usuario"}
-          </Text>
-
-          <Text
-            style={[
-              styles.email,
-              { color: palette.texts.secondary },
-            ]}
-          >
-            {user?.email ?? "Sin correo registrado"}
-          </Text>
-
-          <View
-            style={[
-              styles.profileInformation,
-              {
-                backgroundColor:
-                  palette.colors.surfaceSecondary,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.informationLabel,
-                { color: palette.texts.secondary },
-              ]}
-            >
-              Descripción
-            </Text>
-
-            <Text
-              style={[
-                styles.informationText,
-                { color: palette.texts.primary },
-              ]}
-            >
-              Usuario que organiza y administra sus tareas
-              personales desde la aplicación.
-            </Text>
-
-            <Text
-              style={[
-                styles.informationLabel,
-                styles.characteristicsLabel,
-                { color: palette.texts.secondary },
-              ]}
-            >
-              Características
-            </Text>
-
-            <Text
-              style={[
-                styles.informationText,
-                { color: palette.texts.primary },
-              ]}
-            >
-              Cuenta autenticada · Gestión de tareas ·
-              Sincronización de información
-            </Text>
-          </View>
-        </View>
-
-        {/* Ajustes de la aplicación */}
         <Text
           style={[
             styles.sectionTitle,
@@ -149,6 +96,7 @@ export default function ProfileScreen() {
           Preferencias
         </Text>
 
+        {/* Desde acá cambiamos entre modo claro y oscuro */}
         <View
           style={[
             styles.optionCard,
@@ -213,6 +161,7 @@ export default function ProfileScreen() {
           />
         </View>
 
+        {/* Cierra solamente la sesión de la cuenta actual */}
         <View style={styles.logoutButton}>
           <CustomButton
             title="Cerrar sesión"
@@ -235,46 +184,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 28,
     fontWeight: "700",
-  },
-  profileCard: {
-    alignItems: "center",
-    padding: 24,
-    borderWidth: 1,
-    borderRadius: 18,
-  },
-  avatar: {
-    width: 82,
-    height: 82,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 41,
-  },
-  name: {
-    marginTop: 14,
-    fontSize: 21,
-    fontWeight: "700",
-  },
-  email: {
-    marginTop: 4,
-    fontSize: 14,
-  },
-  profileInformation: {
-    width: "100%",
-    marginTop: 18,
-    padding: 15,
-    borderRadius: 14,
-  },
-  informationLabel: {
-    marginBottom: 4,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  characteristicsLabel: {
-    marginTop: 14,
-  },
-  informationText: {
-    fontSize: 14,
-    lineHeight: 20,
   },
   sectionTitle: {
     marginTop: 28,

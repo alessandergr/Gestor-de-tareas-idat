@@ -1,24 +1,31 @@
 import { FirebaseError } from "firebase/app";
-import {
-  createUserWithEmailAndPassword,
-  updateProfile,
-} from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, } from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View, } from "react-native";
 
 import { firebaseAuth } from "@/config/firebase/firebase.config";
 import { CustomButton } from "@/core/components/CustomButton.component";
 import { InputField } from "@/core/components/InputField.components";
 import { useThemeContext } from "@/core/contexts/theme.context";
+
+import { saveUserProfile, type UserGender, } from "@/modules/auth/data/services/user-profile.service";
 import { AuthContainer } from "../components/AuthContainer.component";
 
 interface RegisterErrors {
-  name: string;
+  firstName: string;
+  lastName: string;
+  gender: string;
   email: string;
   password: string;
   confirmation: string;
 }
+
+const GENDERS: UserGender[] = [
+  "Masculino",
+  "Femenino",
+  "Otro",
+];
 
 // Cambiamos los errores de Firebase por mensajes más fáciles de entender
 const getFirebaseMessage = (error: unknown) => {
@@ -44,88 +51,91 @@ export const RegisterScreen = () => {
   const router = useRouter();
   const { palette } = useThemeContext();
 
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [gender, setGender] = useState<UserGender | "">("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const [errors, setErrors] = useState<RegisterErrors>({
-    name: "",
+    firstName: "",
+    lastName: "",
+    gender: "",
     email: "",
     password: "",
     confirmation: "",
   });
 
   const handleRegister = async () => {
-    const cleanName = name.trim();
+    const cleanFirstName = firstName.trim();
+    const cleanLastName = lastName.trim();
     const cleanEmail = email.trim();
 
-    let nameError = "";
-    let emailError = "";
-    let passwordError = "";
-    let confirmationError = "";
+    const nextErrors: RegisterErrors = {
+      firstName:
+        cleanFirstName.length < 2
+          ? "Ingrese un nombre válido"
+          : "",
+      lastName:
+        cleanLastName.length < 2
+          ? "Ingrese un apellido válido"
+          : "",
+      gender:
+        !gender
+          ? "Seleccione su género"
+          : "",
+      email:
+        !cleanEmail
+          ? "Ingrese su correo"
+          : !/^\S+@\S+\.\S+$/.test(cleanEmail)
+            ? "Ingrese un correo válido"
+            : "",
+      password:
+        password.length < 6
+          ? "La contraseña debe tener al menos 6 caracteres"
+          : "",
+      confirmation:
+        !confirmation
+          ? "Confirme su contraseña"
+          : confirmation !== password
+            ? "Las contraseñas no coinciden"
+            : "",
+    };
 
-    // Revisamos los datos antes de crear la cuenta
-    if (cleanName.length < 3) {
-      nameError = "Ingrese un nombre válido";
-    }
+    setErrors(nextErrors);
 
-    if (!cleanEmail) {
-      emailError = "Ingrese su correo";
-    } else if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
-      emailError = "Ingrese un correo válido";
-    }
-
-    if (password.length < 6) {
-      passwordError =
-        "La contraseña debe tener al menos 6 caracteres";
-    }
-
-    if (!confirmation) {
-      confirmationError = "Confirme su contraseña";
-    } else if (confirmation !== password) {
-      confirmationError = "Las contraseñas no coinciden";
-    }
-
-    setErrors({
-      name: nameError,
-      email: emailError,
-      password: passwordError,
-      confirmation: confirmationError,
-    });
-
-    // Si algún dato está mal no intentamos registrarlo
-    if (
-      nameError ||
-      emailError ||
-      passwordError ||
-      confirmationError
-    ) {
-      return;
-    }
+    // Si algún dato está mal, no intentamos crear la cuenta
+    if (Object.values(nextErrors).some(Boolean)) return;
 
     setIsLoading(true);
 
     try {
-      // Firebase crea la cuenta y deja iniciada la sesión automáticamente
       const credential = await createUserWithEmailAndPassword(
         firebaseAuth,
         cleanEmail,
         password,
       );
 
-      // Guardamos el nombre para mostrarlo después en el perfil
+      // Firebase Auth guarda el nombre completo del usuario
       await updateProfile(credential.user, {
-        displayName: cleanName,
+        displayName: `${cleanFirstName} ${cleanLastName}`,
+      });
+
+      // Firestore guarda los datos extra que usaremos en el perfil
+      await saveUserProfile({
+        uid: credential.user.uid,
+        firstName: cleanFirstName,
+        lastName: cleanLastName,
+        gender: gender as UserGender,
+        email: cleanEmail,
       });
 
       Alert.alert(
         "Cuenta creada",
         "Tu cuenta fue registrada correctamente.",
       );
-
-      // No hacemos otro redirect: RootLayout detecta la sesión y abre las tareas
     } catch (error: unknown) {
       Alert.alert(
         "No se pudo registrar",
@@ -145,17 +155,96 @@ export const RegisterScreen = () => {
         <InputField
           label="Nombre"
           placeholder="Ingresa tu nombre"
-          value={name}
-          error={errors.name}
+          value={firstName}
+          error={errors.firstName}
           editable={!isLoading}
           onChangeText={(value) => {
-            setName(value);
+            setFirstName(value);
             setErrors((current) => ({
               ...current,
-              name: "",
+              firstName: "",
             }));
           }}
         />
+
+        <InputField
+          label="Apellido"
+          placeholder="Ingresa tu apellido"
+          value={lastName}
+          error={errors.lastName}
+          editable={!isLoading}
+          onChangeText={(value) => {
+            setLastName(value);
+            setErrors((current) => ({
+              ...current,
+              lastName: "",
+            }));
+          }}
+        />
+
+        <View style={styles.genderSection}>
+          <Text
+            style={[
+              styles.genderLabel,
+              { color: palette.texts.primary },
+            ]}
+          >
+            Género
+          </Text>
+
+          <View style={styles.genderRow}>
+            {GENDERS.map((option) => {
+              const selected = gender === option;
+
+              return (
+                <Pressable
+                  key={option}
+                  disabled={isLoading}
+                  onPress={() => {
+                    setGender(option);
+                    setErrors((current) => ({
+                      ...current,
+                      gender: "",
+                    }));
+                  }}
+                  style={[
+                    styles.genderButton,
+                    {
+                      backgroundColor: selected
+                        ? palette.colors.primary.default
+                        : palette.colors.surfaceSecondary,
+                      borderColor: selected
+                        ? palette.colors.primary.default
+                        : palette.colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: selected
+                        ? palette.texts.primaryButton
+                        : palette.texts.primary,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {option}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {errors.gender ? (
+            <Text
+              style={[
+                styles.error,
+                { color: palette.colors.error },
+              ]}
+            >
+              {errors.gender}
+            </Text>
+          ) : null}
+        </View>
 
         <InputField
           label="Correo electrónico"
@@ -214,7 +303,7 @@ export const RegisterScreen = () => {
           />
         </View>
 
-        {/* Si ya tiene una cuenta puede regresar al login */}
+        {/* Si ya tiene cuenta puede volver al login */}
         <View style={styles.loginRow}>
           <Text style={{ color: palette.texts.secondary }}>
             ¿Ya tienes una cuenta?
@@ -245,6 +334,27 @@ export const RegisterScreen = () => {
 const styles = StyleSheet.create({
   form: {
     gap: 16,
+  },
+  genderSection: {
+    gap: 8,
+  },
+  genderLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  genderRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  genderButton: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderRadius: 10,
+  },
+  error: {
+    fontSize: 13,
   },
   button: {
     height: 54,
