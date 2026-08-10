@@ -22,7 +22,8 @@
         "backgroundColor": "#F5F7FB"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.alessandergr.gestordetareasidat"
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
@@ -30,6 +31,13 @@
     "plugins": [
       "expo-router",
       "expo-sqlite"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4f52ac0f-c656-40a4-8974-77b5f1d42266"
+      }
+    },
+    "owner": "alessandergr"
   }
 }

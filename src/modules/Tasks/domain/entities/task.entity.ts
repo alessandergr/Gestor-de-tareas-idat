@@ -8,4 +8,5 @@ export interface TaskEntity {
   description: string;
   imageUrl?: string;
   priority: TaskPriority;
+  category: string;
 }

@@ -1,11 +1,22 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View, } from "react-native";
+import {
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { Background } from "@/core/components/Background.component";
 import { useThemeContext } from "@/core/contexts/theme.context";
 
-// Expo Router puede devolver uno o varios valores, acá usamos solo uno
+import type { TaskPriority } from "../../domain/entities/task.entity";
+
 const getParamValue = (
   value: string | string[] | undefined,
 ): string => {
@@ -13,29 +24,43 @@ const getParamValue = (
   return value ?? "";
 };
 
+const getPriorityLabel = (
+  priority: string,
+): string => {
+  const labels: Record<TaskPriority, string> = {
+    low: "Baja",
+    medium: "Media",
+    high: "Alta",
+  };
+
+  if (
+    priority === "low" ||
+    priority === "medium" ||
+    priority === "high"
+  ) {
+    return labels[priority];
+  }
+
+  return "Media";
+};
+
 export const TaskDetailScreen = () => {
   const router = useRouter();
   const { palette } = useThemeContext();
   const params = useLocalSearchParams();
 
-  const imageUrl = getParamValue(params.imageUrl);
   const title = getParamValue(params.title);
-  const description = getParamValue(params.description);
+  const description = getParamValue(
+    params.description,
+  );
+  const imageUrl = getParamValue(params.imageUrl);
   const priority = getParamValue(params.priority);
-
-  // Mostramos la prioridad con el texto que entiende el usuario
-  const priorityLabel =
-    priority === "high"
-      ? "Alta"
-      : priority === "low"
-        ? "Baja"
-        : "Media";
+  const category = getParamValue(params.category);
 
   return (
     <Background>
       <ScrollView
         contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
           <Pressable
@@ -49,7 +74,7 @@ export const TaskDetailScreen = () => {
             onPress={() => router.back()}
           >
             <Ionicons
-              name="arrow-back-outline"
+              name="arrow-back"
               size={24}
               color={palette.texts.primary}
             />
@@ -69,13 +94,13 @@ export const TaskDetailScreen = () => {
           style={[
             styles.card,
             {
-              backgroundColor: palette.colors.surface,
+              backgroundColor:
+                palette.colors.surface,
               borderColor: palette.colors.border,
               ...palette.shadows.sm,
             },
           ]}
         >
-          {/* Mostramos la foto si la tarea tiene evidencia */}
           {imageUrl ? (
             <Image
               source={{ uri: imageUrl }}
@@ -133,6 +158,42 @@ export const TaskDetailScreen = () => {
               { color: palette.texts.secondary },
             ]}
           >
+            Categoría
+          </Text>
+
+          <Text
+            style={[
+              styles.value,
+              { color: palette.texts.primary },
+            ]}
+          >
+            {category || "Sin categoría"}
+          </Text>
+
+          <Text
+            style={[
+              styles.label,
+              { color: palette.texts.secondary },
+            ]}
+          >
+            Prioridad
+          </Text>
+
+          <Text
+            style={[
+              styles.value,
+              { color: palette.texts.primary },
+            ]}
+          >
+            {getPriorityLabel(priority)}
+          </Text>
+
+          <Text
+            style={[
+              styles.label,
+              { color: palette.texts.secondary },
+            ]}
+          >
             Descripción
           </Text>
 
@@ -143,26 +204,6 @@ export const TaskDetailScreen = () => {
             ]}
           >
             {description || "Sin descripción"}
-          </Text>
-
-          {/* También mostramos la prioridad elegida */}
-          <Text
-            style={[
-              styles.label,
-              styles.priorityLabel,
-              { color: palette.texts.secondary },
-            ]}
-          >
-            Prioridad
-          </Text>
-
-          <Text
-            style={[
-              styles.priority,
-              { color: palette.colors.primary.default },
-            ]}
-          >
-            {priorityLabel}
           </Text>
         </View>
       </ScrollView>
@@ -224,15 +265,13 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "700",
   },
+  value: {
+    marginBottom: 22,
+    fontSize: 16,
+    fontWeight: "600",
+  },
   description: {
     fontSize: 16,
     lineHeight: 24,
-  },
-  priorityLabel: {
-    marginTop: 22,
-  },
-  priority: {
-    fontSize: 16,
-    fontWeight: "700",
   },
 });

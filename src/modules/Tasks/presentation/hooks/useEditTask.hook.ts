@@ -1,9 +1,21 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import {
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import { useState } from "react";
 
 import { uploadTaskImage } from "../../data/services/cloudinary-upload.service";
 import { updateTaskUseCase } from "../../di/task.dependencies";
-import { TaskEntity, TaskPriority, } from "../../domain/entities/task.entity";
+import {
+  TaskEntity,
+  TaskPriority,
+} from "../../domain/entities/task.entity";
+
+const DATA_STATES_DEFAULT = {
+  isLoading: false,
+  isError: false,
+  data: null,
+};
 
 interface DataStates {
   isLoading: boolean;
@@ -11,24 +23,13 @@ interface DataStates {
   data: TaskEntity | null;
 }
 
-const DATA_STATES_DEFAULT: DataStates = {
-  isLoading: false,
-  isError: false,
-  data: null,
-};
-
-// Expo Router puede devolver uno o varios valores, acá sacamos solo uno
 const getParamValue = (
   value: string | string[] | undefined,
 ): string => {
-  if (Array.isArray(value)) {
-    return value[0] ?? "";
-  }
-
+  if (Array.isArray(value)) return value[0] ?? "";
   return value ?? "";
 };
 
-// Revisamos la prioridad recibida y usamos media si todavía no existe
 const getPriority = (
   value: string | string[] | undefined,
 ): TaskPriority => {
@@ -45,7 +46,6 @@ const getPriority = (
   return "medium";
 };
 
-// Acá guardamos los datos de la tarea que el usuario eligió editar
 export const useEditTask = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -55,6 +55,9 @@ export const useEditTask = () => {
     title: getParamValue(params.title),
     description: getParamValue(params.description),
     priority: getPriority(params.priority),
+    category:
+      getParamValue(params.category) ||
+      "Sin categoría",
   });
 
   const [imageUri, setImageUri] = useState(
@@ -64,24 +67,12 @@ export const useEditTask = () => {
   const [dataStates, setDataStates] =
     useState<DataStates>(DATA_STATES_DEFAULT);
 
-  const onChangeTitle = (title: string) => {
+  const updateTask = (
+    changes: Partial<TaskEntity>,
+  ) => {
     setTask((current) => ({
       ...current,
-      title,
-    }));
-  };
-
-  const onChangeDescription = (description: string) => {
-    setTask((current) => ({
-      ...current,
-      description,
-    }));
-  };
-
-  const onChangePriority = (priority: TaskPriority) => {
-    setTask((current) => ({
-      ...current,
-      priority,
+      ...changes,
     }));
   };
 
@@ -92,7 +83,6 @@ export const useEditTask = () => {
     });
 
     try {
-      // Si es una foto nueva la subimos, si ya tiene URL usamos la misma
       const imageUrl =
         imageUri && !imageUri.startsWith("http")
           ? await uploadTaskImage(imageUri)
@@ -108,7 +98,6 @@ export const useEditTask = () => {
         data: result,
       });
 
-      // Después de guardar volvemos al listado de tareas
       router.replace("/tasks");
     } catch {
       setDataStates({
@@ -123,9 +112,14 @@ export const useEditTask = () => {
     imageUri,
     dataStates,
     handleSubmit,
-    onChangeTitle,
-    onChangeDescription,
-    onChangePriority,
+    onChangeTitle: (title: string) =>
+      updateTask({ title }),
+    onChangeDescription: (description: string) =>
+      updateTask({ description }),
+    onChangePriority: (priority: TaskPriority) =>
+      updateTask({ priority }),
+    onChangeCategory: (category: string) =>
+      updateTask({ category }),
     onChangeImage: setImageUri,
   };
 };

@@ -1,11 +1,24 @@
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View,} from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { CustomButton } from "@/core/components/CustomButton.component";
 import { InputField } from "@/core/components/InputField.components";
 import { useThemeContext } from "@/core/contexts/theme.context";
 
-import { TaskPriority } from "../../domain/entities/task.entity";
+import {
+  getTaskCategories,
+  type TaskCategory,
+} from "../../data/services/category-api.service";
+import type { TaskPriority } from "../../domain/entities/task.entity";
 import { TaskImageField } from "./TaskImageField.component";
 
 interface TaskFormProps {
@@ -13,6 +26,7 @@ interface TaskFormProps {
   description: string;
   imageUri: string;
   priority: TaskPriority;
+  category: string;
   submitLabel: string;
   onSubmit: () => void;
   disabled?: boolean;
@@ -21,28 +35,30 @@ interface TaskFormProps {
   onChangeDescription: (description: string) => void;
   onChangeImage: (uri: string) => void;
   onChangePriority: (priority: TaskPriority) => void;
+  onChangeCategory: (category: string) => void;
 }
 
 interface FormErrors {
   title: string;
   description: string;
+  category: string;
 }
 
 const PRIORITIES: {
-  label: string;
   value: TaskPriority;
+  label: string;
 }[] = [
-  { label: "Baja", value: "low" },
-  { label: "Media", value: "medium" },
-  { label: "Alta", value: "high" },
+  { value: "low", label: "Baja" },
+  { value: "medium", label: "Media" },
+  { value: "high", label: "Alta" },
 ];
 
-// Usamos el mismo formulario tanto para crear como para editar una tarea
 export const TaskForm = ({
   title,
   description,
   imageUri,
   priority,
+  category,
   submitLabel,
   onSubmit,
   disabled,
@@ -51,39 +67,72 @@ export const TaskForm = ({
   onChangeDescription,
   onChangeImage,
   onChangePriority,
+  onChangeCategory,
 }: TaskFormProps) => {
   const { palette } = useThemeContext();
+
+  const [categories, setCategories] = useState<
+    TaskCategory[]
+  >([]);
+  const [loadingCategories, setLoadingCategories] =
+    useState(true);
+  const [categoryError, setCategoryError] =
+    useState(false);
 
   const [errors, setErrors] = useState<FormErrors>({
     title: "",
     description: "",
+    category: "",
   });
+
+  // La lista viene de la API REST, no está escrita directamente en el formulario
+  const loadCategories = async () => {
+    setLoadingCategories(true);
+    setCategoryError(false);
+
+    try {
+      const result = await getTaskCategories();
+      setCategories(result);
+    } catch {
+      setCategoryError(true);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadCategories();
+  }, []);
 
   const validateAndSubmit = () => {
     const cleanTitle = title.trim();
     const cleanDescription = description.trim();
 
-    let titleError = "";
-    let descriptionError = "";
+    const nextErrors: FormErrors = {
+      title:
+        cleanTitle.length === 0
+          ? "Ingrese un título"
+          : cleanTitle.length < 3
+            ? "El título debe tener al menos 3 caracteres"
+            : "",
+      description:
+        cleanDescription.length === 0
+          ? "Ingrese una descripción"
+          : "",
+      category: !category
+        ? "Seleccione una categoría"
+        : "",
+    };
 
-    // Revisamos los campos antes de guardar la tarea
-    if (!cleanTitle) {
-      titleError = "Ingrese un título";
-    } else if (cleanTitle.length < 3) {
-      titleError =
-        "El título debe tener al menos 3 caracteres";
+    setErrors(nextErrors);
+
+    if (
+      nextErrors.title ||
+      nextErrors.description ||
+      nextErrors.category
+    ) {
+      return;
     }
-
-    if (!cleanDescription) {
-      descriptionError = "Ingrese una descripción";
-    }
-
-    setErrors({
-      title: titleError,
-      description: descriptionError,
-    });
-
-    if (titleError || descriptionError) return;
 
     onSubmit();
   };
@@ -91,11 +140,14 @@ export const TaskForm = ({
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={
+        Platform.OS === "ios"
+          ? "padding"
+          : undefined
+      }
     >
       <ScrollView
         contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.form}>
@@ -136,30 +188,113 @@ export const TaskForm = ({
             }}
           />
 
-          {/* El usuario elige una de las tres prioridades antes de guardar */}
-          <View style={styles.prioritySection}>
+          <View>
             <Text
               style={[
-                styles.priorityLabel,
+                styles.label,
+                { color: palette.texts.primary },
+              ]}
+            >
+              Categoría
+            </Text>
+
+            {loadingCategories ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator
+                  size="small"
+                  color={palette.colors.primary.default}
+                />
+                <Text
+                  style={{
+                    color: palette.texts.secondary,
+                  }}
+                >
+                  Cargando categorías...
+                </Text>
+              </View>
+            ) : categoryError ? (
+              <Pressable onPress={() => void loadCategories()}>
+                <Text
+                  style={{
+                    color: palette.colors.primary.default,
+                  }}
+                >
+                  No se pudieron cargar. Toca para reintentar.
+                </Text>
+              </Pressable>
+            ) : (
+              <View style={styles.options}>
+                {categories.map((item) => {
+                  const selected =
+                    category === item.label;
+
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => {
+                        onChangeCategory(item.label);
+                        setErrors((current) => ({
+                          ...current,
+                          category: "",
+                        }));
+                      }}
+                      style={[
+                        styles.option,
+                        {
+                          backgroundColor: selected
+                            ? palette.colors.primary.default
+                            : palette.colors.surfaceSecondary,
+                          borderColor: selected
+                            ? palette.colors.primary.default
+                            : palette.colors.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: selected
+                            ? palette.texts.primaryButton
+                            : palette.texts.primary,
+                        }}
+                      >
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+
+            {errors.category ? (
+              <Text style={styles.error}>
+                {errors.category}
+              </Text>
+            ) : null}
+          </View>
+
+          <View>
+            <Text
+              style={[
+                styles.label,
                 { color: palette.texts.primary },
               ]}
             >
               Prioridad
             </Text>
 
-            <View style={styles.priorityRow}>
+            <View style={styles.options}>
               {PRIORITIES.map((item) => {
-                const selected = priority === item.value;
+                const selected =
+                  priority === item.value;
 
                 return (
                   <Pressable
                     key={item.value}
-                    disabled={disabled || loading}
                     onPress={() =>
                       onChangePriority(item.value)
                     }
                     style={[
-                      styles.priorityButton,
+                      styles.option,
                       {
                         backgroundColor: selected
                           ? palette.colors.primary.default
@@ -171,14 +306,11 @@ export const TaskForm = ({
                     ]}
                   >
                     <Text
-                      style={[
-                        styles.priorityText,
-                        {
-                          color: selected
-                            ? palette.texts.primaryButton
-                            : palette.texts.primary,
-                        },
-                      ]}
+                      style={{
+                        color: selected
+                          ? palette.texts.primaryButton
+                          : palette.texts.primary,
+                      }}
                     >
                       {item.label}
                     </Text>
@@ -188,7 +320,6 @@ export const TaskForm = ({
             </View>
           </View>
 
-          {/* La fotografía sigue siendo opcional */}
           <TaskImageField
             imageUri={imageUri}
             onChangeImage={onChangeImage}
@@ -196,9 +327,17 @@ export const TaskForm = ({
 
           <View style={styles.buttonContainer}>
             <CustomButton
-              title={loading ? "Guardando..." : submitLabel}
+              title={
+                loading
+                  ? "Guardando..."
+                  : submitLabel
+              }
               onPress={validateAndSubmit}
-              disabled={disabled || loading}
+              disabled={
+                disabled ||
+                loading ||
+                loadingCategories
+              }
             />
           </View>
         </View>
@@ -218,28 +357,31 @@ const styles = StyleSheet.create({
   form: {
     gap: 20,
   },
-  prioritySection: {
+  label: {
+    marginBottom: 10,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  options: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
-  priorityLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  priorityRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  priorityButton: {
-    flex: 1,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
+  option: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderWidth: 1,
     borderRadius: 12,
   },
-  priorityText: {
-    fontSize: 14,
-    fontWeight: "700",
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  error: {
+    marginTop: 7,
+    fontSize: 12,
+    color: "#D32F2F",
   },
   buttonContainer: {
     height: 52,

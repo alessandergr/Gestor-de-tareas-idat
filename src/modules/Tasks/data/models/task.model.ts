@@ -8,6 +8,7 @@ export class TaskModel implements TaskEntity {
     public id?: string,
     public imageUrl?: string,
     public priority: TaskPriority = "medium",
+    public category: string = "Sin categoría",
   ) {}
 
   // Si recibimos una tarea normal, la convertimos al modelo que usamos en datos
@@ -18,6 +19,7 @@ export class TaskModel implements TaskEntity {
       task.id,
       task.imageUrl,
       task.priority,
+      task.category,
     );
   }
 }

@@ -1,7 +1,10 @@
 import { getDatabase } from "@/config/database/database.config";
 import { firebaseAuth } from "@/config/firebase/firebase.config";
 
-import { TaskEntity, TaskPriority, } from "../../../domain/entities/task.entity";
+import {
+  TaskEntity,
+  TaskPriority,
+} from "../../../domain/entities/task.entity";
 import { TaskModel } from "../../models/task.model";
 
 type PendingAction = "create" | "update" | "delete";
@@ -12,11 +15,12 @@ interface TaskRow {
   description: string;
   image_url: string | null;
   priority: TaskPriority;
+  category: string;
   user_id: string | null;
   pending_action: PendingAction | null;
 }
 
-// Sacamos el usuario actual para que sus tareas no se mezclen con otras cuentas
+// Sacamos el usuario actual para no mezclar tareas entre cuentas
 const getCurrentUserId = (): string => {
   const userId = firebaseAuth.currentUser?.uid;
 
@@ -32,17 +36,24 @@ export interface TaskLocalDataSource {
   replaceTasks: (tasks: TaskModel[]) => Promise<void>;
   saveTask: (task: TaskModel) => Promise<void>;
   removeTask: (id: string) => Promise<void>;
-  createPendingTask: (task: TaskEntity) => Promise<TaskModel>;
-  updatePendingTask: (task: TaskEntity) => Promise<TaskModel>;
-  deletePendingTask: (id: string) => Promise<TaskModel>;
+  createPendingTask: (
+    task: TaskEntity,
+  ) => Promise<TaskModel>;
+  updatePendingTask: (
+    task: TaskEntity,
+  ) => Promise<TaskModel>;
+  deletePendingTask: (
+    id: string,
+  ) => Promise<TaskModel>;
 }
 
-export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
+export class TaskLocalDataSourceImpl
+  implements TaskLocalDataSource
+{
   async getTasks(): Promise<TaskModel[]> {
     const database = await getDatabase();
     const userId = getCurrentUserId();
 
-    // Traemos solo las tareas visibles del usuario que tiene la sesión abierta
     const rows = await database.getAllAsync<TaskRow>(
       `
         SELECT
@@ -51,6 +62,7 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
           description,
           image_url,
           priority,
+          category,
           user_id,
           pending_action
         FROM tasks
@@ -68,6 +80,7 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
           row.id,
           row.image_url ?? undefined,
           row.priority,
+          row.category || "Sin categoría",
         ),
     );
   }
@@ -85,7 +98,7 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
         userId,
       );
 
-      // Guardamos en SQLite las tareas que llegaron desde Firestore
+      // Guardamos en SQLite lo que llegó desde Firestore
       for (const task of tasks) {
         if (!task.id) continue;
 
@@ -97,17 +110,19 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
               description,
               image_url,
               priority,
+              category,
               user_id,
               pending_action,
               is_deleted
             )
-            VALUES (?, ?, ?, ?, ?, ?, NULL, 0)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0)
           `,
           task.id,
           task.title,
           task.description,
           task.imageUrl ?? null,
           task.priority,
+          task.category,
           userId,
         );
       }
@@ -120,7 +135,6 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
     const database = await getDatabase();
     const userId = getCurrentUserId();
 
-    // Esta tarea ya se sincronizó, por eso pending_action queda vacío
     await database.runAsync(
       `
         INSERT OR REPLACE INTO tasks (
@@ -129,17 +143,19 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
           description,
           image_url,
           priority,
+          category,
           user_id,
           pending_action,
           is_deleted
         )
-        VALUES (?, ?, ?, ?, ?, ?, NULL, 0)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 0)
       `,
       task.id,
       task.title,
       task.description,
       task.imageUrl ?? null,
       task.priority,
+      task.category,
       userId,
     );
   }
@@ -155,12 +171,14 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
     );
   }
 
-  async createPendingTask(task: TaskEntity): Promise<TaskModel> {
+  async createPendingTask(
+    task: TaskEntity,
+  ): Promise<TaskModel> {
     const database = await getDatabase();
     const userId = getCurrentUserId();
     const id = `local-${userId}-${Date.now()}`;
 
-    // Si no hay internet guardamos todo, incluida la prioridad, como pendiente
+    // Sin internet la dejamos marcada para sincronizarla después
     await database.runAsync(
       `
         INSERT INTO tasks (
@@ -169,17 +187,19 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
           description,
           image_url,
           priority,
+          category,
           user_id,
           pending_action,
           is_deleted
         )
-        VALUES (?, ?, ?, ?, ?, ?, 'create', 0)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'create', 0)
       `,
       id,
       task.title,
       task.description,
       task.imageUrl ?? null,
       task.priority,
+      task.category,
       userId,
     );
 
@@ -189,10 +209,13 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
       id,
       task.imageUrl,
       task.priority,
+      task.category,
     );
   }
 
-  async updatePendingTask(task: TaskEntity): Promise<TaskModel> {
+  async updatePendingTask(
+    task: TaskEntity,
+  ): Promise<TaskModel> {
     if (!task.id) {
       throw new Error("La tarea no tiene ID");
     }
@@ -200,18 +223,21 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
     const database = await getDatabase();
     const userId = getCurrentUserId();
 
-    const current = await database.getFirstAsync<TaskRow>(
-      "SELECT * FROM tasks WHERE id = ? AND user_id = ?",
-      task.id,
-      userId,
-    );
+    const current =
+      await database.getFirstAsync<TaskRow>(
+        "SELECT * FROM tasks WHERE id = ? AND user_id = ?",
+        task.id,
+        userId,
+      );
 
     if (!current) {
       throw new Error("Tarea no encontrada");
     }
 
     const action: PendingAction =
-      current.pending_action === "create" ? "create" : "update";
+      current.pending_action === "create"
+        ? "create"
+        : "update";
 
     await database.runAsync(
       `
@@ -221,6 +247,7 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
           description = ?,
           image_url = ?,
           priority = ?,
+          category = ?,
           pending_action = ?
         WHERE id = ? AND user_id = ?
       `,
@@ -228,6 +255,7 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
       task.description,
       task.imageUrl ?? null,
       task.priority,
+      task.category,
       action,
       task.id,
       userId,
@@ -239,32 +267,34 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
       task.id,
       task.imageUrl,
       task.priority,
+      task.category,
     );
   }
 
-  async deletePendingTask(id: string): Promise<TaskModel> {
+  async deletePendingTask(
+    id: string,
+  ): Promise<TaskModel> {
     const database = await getDatabase();
     const userId = getCurrentUserId();
 
-    const current = await database.getFirstAsync<TaskRow>(
-      "SELECT * FROM tasks WHERE id = ? AND user_id = ?",
-      id,
-      userId,
-    );
+    const current =
+      await database.getFirstAsync<TaskRow>(
+        "SELECT * FROM tasks WHERE id = ? AND user_id = ?",
+        id,
+        userId,
+      );
 
     if (!current) {
       throw new Error("Tarea no encontrada");
     }
 
     if (current.pending_action === "create") {
-      // Si nunca llegó a Firestore podemos borrarla directamente
       await database.runAsync(
         "DELETE FROM tasks WHERE id = ? AND user_id = ?",
         id,
         userId,
       );
     } else {
-      // Si ya estaba sincronizada queda pendiente para borrarla después
       await database.runAsync(
         `
           UPDATE tasks
@@ -282,6 +312,7 @@ export class TaskLocalDataSourceImpl implements TaskLocalDataSource {
       current.id,
       current.image_url ?? undefined,
       current.priority,
+      current.category,
     );
   }
 }

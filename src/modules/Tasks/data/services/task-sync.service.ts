@@ -1,8 +1,13 @@
+import {
+  doc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
+
 import { getDatabase } from "@/config/database/database.config";
 import { firebaseDb } from "@/config/firebase/firebase.config";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
-import { TaskPriority } from "../../domain/entities/task.entity";
+import type { TaskPriority } from "../../domain/entities/task.entity";
 
 type PendingAction = "create" | "update" | "delete";
 
@@ -12,16 +17,17 @@ interface PendingTaskRow {
   description: string;
   image_url: string | null;
   priority: TaskPriority;
+  category: string;
   user_id: string;
   pending_action: PendingAction;
 }
 
 let isSyncing = false;
 
+// Envía a Firestore los cambios que quedaron pendientes en SQLite
 export const syncPendingTasks = async (
   userId: string,
 ): Promise<void> => {
-  // Evita que se hagan dos sincronizaciones al mismo tiempo
   if (isSyncing) return;
 
   isSyncing = true;
@@ -29,24 +35,30 @@ export const syncPendingTasks = async (
   try {
     const database = await getDatabase();
 
-    // Buscamos los cambios que quedaron pendientes por falta de internet
-    const tasks = await database.getAllAsync<PendingTaskRow>(
-      `
-        SELECT
-          id,
-          title,
-          description,
-          image_url,
-          priority,
-          user_id,
-          pending_action
-        FROM tasks
-        WHERE user_id = ?
-          AND pending_action IN ('create', 'update', 'delete')
-        ORDER BY rowid ASC
-      `,
-      userId,
-    );
+    const tasks =
+      await database.getAllAsync<PendingTaskRow>(
+        `
+          SELECT
+            id,
+            title,
+            description,
+            image_url,
+            priority,
+            category,
+            user_id,
+            pending_action
+          FROM tasks
+          WHERE
+            user_id = ?
+            AND pending_action IN (
+              'create',
+              'update',
+              'delete'
+            )
+          ORDER BY rowid ASC
+        `,
+        userId,
+      );
 
     for (const task of tasks) {
       const taskReference = doc(
@@ -57,7 +69,6 @@ export const syncPendingTasks = async (
         task.id,
       );
 
-      // Mandamos a Firestore todos los datos, incluida la prioridad
       await setDoc(
         taskReference,
         {
@@ -65,21 +76,22 @@ export const syncPendingTasks = async (
           description: task.description,
           imageUrl: task.image_url ?? null,
           priority: task.priority,
-          isDeleted: task.pending_action === "delete",
+          category: task.category,
+          isDeleted:
+            task.pending_action === "delete",
           updatedAt: serverTimestamp(),
         },
         { merge: true },
       );
 
       if (task.pending_action === "delete") {
-        // Si ya se eliminó en Firestore también la quitamos del celular
+        // Si ya se eliminó en Firestore ya no hace falta conservarla localmente
         await database.runAsync(
           "DELETE FROM tasks WHERE id = ? AND user_id = ?",
           task.id,
           userId,
         );
       } else {
-        // Si ya se sincronizó deja de estar marcada como pendiente
         await database.runAsync(
           `
             UPDATE tasks

@@ -1,13 +1,29 @@
-import { collection, doc, getDocs, serverTimestamp, setDoc, } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 
-import { firebaseAuth, firebaseDb, } from "@/config/firebase/firebase.config";
+import {
+  firebaseAuth,
+  firebaseDb,
+} from "@/config/firebase/firebase.config";
 
-import { TaskEntity, TaskPriority, } from "../../../domain/entities/task.entity";
+import {
+  TaskEntity,
+  TaskPriority,
+} from "../../../domain/entities/task.entity";
 import { TaskModel } from "../../models/task.model";
 
-// Si una tarea antigua no tiene prioridad, la dejamos como media
+// Si una tarea antigua no tiene prioridad, usamos media
 const getPriority = (value: unknown): TaskPriority => {
-  if (value === "low" || value === "medium" || value === "high") {
+  if (
+    value === "low" ||
+    value === "medium" ||
+    value === "high"
+  ) {
     return value;
   }
 
@@ -24,7 +40,6 @@ const getCurrentUserId = (): string => {
   return userId;
 };
 
-// Cada usuario tiene sus tareas dentro de su propia colección
 const getTasksCollection = () => {
   const userId = getCurrentUserId();
 
@@ -38,8 +53,12 @@ const getTasksCollection = () => {
 
 export interface TaskRemoteDataSource {
   getTasks: () => Promise<TaskModel[]>;
-  createTask: (task: TaskEntity) => Promise<TaskModel>;
-  updateTask: (task: TaskEntity) => Promise<TaskModel>;
+  createTask: (
+    task: TaskEntity,
+  ) => Promise<TaskModel>;
+  updateTask: (
+    task: TaskEntity,
+  ) => Promise<TaskModel>;
   deleteTask: (id: string) => Promise<void>;
 }
 
@@ -47,11 +66,16 @@ export class TaskRemoteDataSourceImpl
   implements TaskRemoteDataSource
 {
   async getTasks(): Promise<TaskModel[]> {
-    const snapshot = await getDocs(getTasksCollection());
+    const snapshot = await getDocs(
+      getTasksCollection(),
+    );
 
-    // Convertimos los documentos de Firestore en tareas de la app
+    // Convertimos los documentos de Firestore a tareas
     return snapshot.docs
-      .filter((document) => document.data().isDeleted !== true)
+      .filter(
+        (document) =>
+          document.data().isDeleted !== true,
+      )
       .map((document) => {
         const data = document.data();
 
@@ -61,19 +85,22 @@ export class TaskRemoteDataSourceImpl
           document.id,
           data.imageUrl || undefined,
           getPriority(data.priority),
+          data.category || "Sin categoría",
         );
       });
   }
 
-  async createTask(task: TaskEntity): Promise<TaskModel> {
+  async createTask(
+    task: TaskEntity,
+  ): Promise<TaskModel> {
     const taskRef = doc(getTasksCollection());
 
-    // Guardamos también la prioridad elegida por el usuario
     await setDoc(taskRef, {
       title: task.title,
       description: task.description,
       imageUrl: task.imageUrl ?? null,
       priority: task.priority,
+      category: task.category,
       isDeleted: false,
       updatedAt: serverTimestamp(),
     });
@@ -84,10 +111,13 @@ export class TaskRemoteDataSourceImpl
       taskRef.id,
       task.imageUrl,
       task.priority,
+      task.category,
     );
   }
 
-  async updateTask(task: TaskEntity): Promise<TaskModel> {
+  async updateTask(
+    task: TaskEntity,
+  ): Promise<TaskModel> {
     if (!task.id) {
       throw new Error("La tarea no tiene ID");
     }
@@ -102,7 +132,6 @@ export class TaskRemoteDataSourceImpl
       task.id,
     );
 
-    // Actualizamos los datos sin borrar otros campos que ya tenga la tarea
     await setDoc(
       taskRef,
       {
@@ -110,6 +139,7 @@ export class TaskRemoteDataSourceImpl
         description: task.description,
         imageUrl: task.imageUrl ?? null,
         priority: task.priority,
+        category: task.category,
         isDeleted: false,
         updatedAt: serverTimestamp(),
       },
@@ -122,6 +152,7 @@ export class TaskRemoteDataSourceImpl
       task.id,
       task.imageUrl,
       task.priority,
+      task.category,
     );
   }
 
@@ -136,7 +167,6 @@ export class TaskRemoteDataSourceImpl
       id,
     );
 
-    // La marcamos como eliminada para mantener bien la sincronización
     await setDoc(
       taskRef,
       {

@@ -3,15 +3,20 @@ import { useState } from "react";
 
 import { uploadTaskImage } from "../../data/services/cloudinary-upload.service";
 import { createTaskUseCase } from "../../di/task.dependencies";
-import { TaskEntity, TaskPriority } from "../../domain/entities/task.entity";
+import type { TaskEntity } from "../../domain/entities/task.entity";
 
-const DEFAULT_STATE = {
+const DATA_STATES_DEFAULT = {
   isLoading: false,
   isError: false,
-  data: null as TaskEntity | null,
+  data: null,
 };
 
-// Acá guardamos los datos de la nueva tarea
+interface DataStates {
+  isLoading: boolean;
+  isError: boolean;
+  data: TaskEntity | null;
+}
+
 export const useNewTask = () => {
   const router = useRouter();
 
@@ -19,18 +24,29 @@ export const useNewTask = () => {
     title: "",
     description: "",
     priority: "medium",
+    category: "",
   });
 
   const [imageUri, setImageUri] = useState("");
-  const [dataStates, setDataStates] = useState(DEFAULT_STATE);
 
-  const updateTask = (changes: Partial<TaskEntity>) => {
-    setTask((current) => ({ ...current, ...changes }));
+  const [dataStates, setDataStates] =
+    useState<DataStates>(DATA_STATES_DEFAULT);
+
+  // Evita repetir un setTask distinto para cada campo
+  const updateTask = (
+    changes: Partial<TaskEntity>,
+  ) => {
+    setTask((current) => ({
+      ...current,
+      ...changes,
+    }));
   };
 
-  // Cada opción del formulario actualiza solamente el dato que cambió
   const handleSubmit = async () => {
-    setDataStates({ ...DEFAULT_STATE, isLoading: true });
+    setDataStates({
+      ...DATA_STATES_DEFAULT,
+      isLoading: true,
+    });
 
     try {
       const imageUrl = imageUri
@@ -42,10 +58,17 @@ export const useNewTask = () => {
         imageUrl,
       });
 
-      setDataStates({ ...DEFAULT_STATE, data: result });
+      setDataStates({
+        ...DATA_STATES_DEFAULT,
+        data: result,
+      });
+
       router.replace("/tasks");
     } catch {
-      setDataStates({ ...DEFAULT_STATE, isError: true });
+      setDataStates({
+        ...DATA_STATES_DEFAULT,
+        isError: true,
+      });
     }
   };
 
@@ -54,11 +77,15 @@ export const useNewTask = () => {
     imageUri,
     dataStates,
     handleSubmit,
-    onChangeTitle: (title: string) => updateTask({ title }),
+    onChangeTitle: (title: string) =>
+      updateTask({ title }),
     onChangeDescription: (description: string) =>
       updateTask({ description }),
-    onChangePriority: (priority: TaskPriority) =>
-      updateTask({ priority }),
+    onChangePriority: (
+      priority: TaskEntity["priority"],
+    ) => updateTask({ priority }),
+    onChangeCategory: (category: string) =>
+      updateTask({ category }),
     onChangeImage: setImageUri,
   };
 };
