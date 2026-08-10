@@ -1,8 +1,10 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { FirebaseError } from "firebase/app";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View,} from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+
 import { firebaseAuth } from "@/config/firebase/firebase.config";
 import { CustomButton } from "@/core/components/CustomButton.component";
 import { InputField } from "@/core/components/InputField.components";
@@ -14,6 +16,7 @@ interface LoginErrors {
   password: string;
 }
 
+// Traducimos los errores de Firebase a mensajes más fáciles de entender
 const getLoginErrorMessage = (error: unknown) => {
   if (!(error instanceof FirebaseError)) {
     return "Ocurrió un error inesperado.";
@@ -22,16 +25,12 @@ const getLoginErrorMessage = (error: unknown) => {
   switch (error.code) {
     case "auth/invalid-credential":
       return "El correo o la contraseña son incorrectos.";
-
     case "auth/invalid-email":
       return "El correo electrónico no es válido.";
-
     case "auth/too-many-requests":
       return "Se realizaron demasiados intentos. Intenta más tarde.";
-
     case "auth/network-request-failed":
       return "Revisa tu conexión a internet.";
-
     default:
       return "No se pudo iniciar sesión.";
   }
@@ -53,27 +52,31 @@ export const LoginScreen = () => {
   const handleLogin = async () => {
     const cleanEmail = email.trim();
 
-    const nextErrors: LoginErrors = {
-      email:
-        cleanEmail.length === 0
-          ? "Ingrese su correo"
-          : !/^\S+@\S+\.\S+$/.test(cleanEmail)
-            ? "Ingrese un correo válido"
-            : "",
+    let emailError = "";
+    let passwordError = "";
 
-      password:
-        password.length === 0
-          ? "Ingrese su contraseña"
-          : password.length < 6
-            ? "La contraseña debe tener al menos 6 caracteres"
-            : "",
-    };
-
-    setErrors(nextErrors);
-
-    if (nextErrors.email || nextErrors.password) {
-      return;
+    // Primero revisamos que el correo tenga un formato válido
+    if (!cleanEmail) {
+      emailError = "Ingrese su correo";
+    } else if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+      emailError = "Ingrese un correo válido";
     }
+
+    // Firebase pide mínimo 6 caracteres en la contraseña
+    if (!password) {
+      passwordError = "Ingrese su contraseña";
+    } else if (password.length < 6) {
+      passwordError =
+        "La contraseña debe tener al menos 6 caracteres";
+    }
+
+    setErrors({
+      email: emailError,
+      password: passwordError,
+    });
+
+    // Si algún campo está mal, no intentamos iniciar sesión
+    if (emailError || passwordError) return;
 
     setIsLoading(true);
 
@@ -84,7 +87,8 @@ export const LoginScreen = () => {
         password,
       );
 
-      router.replace("/products");
+      // Si todo salió bien entramos a las tareas
+      router.replace("/tasks");
     } catch (error: unknown) {
       Alert.alert(
         "No se pudo iniciar sesión",
@@ -97,8 +101,8 @@ export const LoginScreen = () => {
 
   return (
     <AuthContainer
-      title="Bienvenido"
-      subtitle="Inicia sesión para organizar tus tareas."
+      title="Iniciar sesión"
+      subtitle="Ingresa con tu correo y contraseña"
     >
       <View style={styles.form}>
         <InputField
@@ -111,7 +115,6 @@ export const LoginScreen = () => {
           editable={!isLoading}
           onChangeText={(value) => {
             setEmail(value);
-
             setErrors((current) => ({
               ...current,
               email: "",
@@ -128,7 +131,6 @@ export const LoginScreen = () => {
           editable={!isLoading}
           onChangeText={(value) => {
             setPassword(value);
-
             setErrors((current) => ({
               ...current,
               password: "",
@@ -148,12 +150,9 @@ export const LoginScreen = () => {
           />
         </View>
 
+        {/* Desde acá mandamos al usuario al registro */}
         <View style={styles.registerRow}>
-          <Text
-            style={{
-              color: palette.texts.secondary,
-            }}
-          >
+          <Text style={{ color: palette.texts.secondary }}>
             ¿No tienes una cuenta?
           </Text>
 
@@ -165,8 +164,7 @@ export const LoginScreen = () => {
               style={[
                 styles.link,
                 {
-                  color:
-                    palette.colors.primary.default,
+                  color: palette.colors.primary.default,
                   opacity: isLoading ? 0.5 : 1,
                 },
               ]}

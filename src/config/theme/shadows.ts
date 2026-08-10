@@ -1,3 +1,4 @@
+// Sombras para el modo claro
 export const lightShadow = {
   sm: {
     shadowColor: "#000000",
@@ -33,6 +34,7 @@ export const lightShadow = {
   },
 };
 
+// En oscuro las sombras son un poco más fuertes
 export const darkShadow = {
   sm: {
     shadowColor: "#000000",

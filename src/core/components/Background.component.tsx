@@ -1,13 +1,12 @@
-import { FC, ReactNode } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { useThemeContext } from "../contexts/theme.context";
 
-interface BackgroundProps {
-  children: ReactNode;
-}
+interface BackgroundProps { children: ReactNode;}
 
-export const Background: FC<BackgroundProps> = ({ children }) => {
+export const Background = ({ children }: BackgroundProps) => {
   const insets = useSafeAreaInsets();
   const { palette } = useThemeContext();
 
@@ -17,6 +16,7 @@ export const Background: FC<BackgroundProps> = ({ children }) => {
         styles.container,
         {
           backgroundColor: palette.colors.background,
+          // Evita que el contenido choque con la barra del celular
           paddingTop: insets.top,
           paddingBottom: insets.bottom,
         },

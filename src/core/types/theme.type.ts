@@ -4,6 +4,7 @@ export interface ColorVariant {
   dark: string;
 }
 
+// Todos los colores que puede usar la app
 export type ColorsType = {
   primary: ColorVariant;
   secondary: ColorVariant;
@@ -19,6 +20,7 @@ export type ColorsType = {
   overlay: string;
 };
 
+// Colores que se usan específicamente en textos
 export type TextsType = {
   primary: string;
   secondary: string;
@@ -33,11 +35,11 @@ export type TextsType = {
   error: string;
 };
 
-export type ShadowsType = {
-  sm: ShadowVariant;
-  md: ShadowVariant;
-  lg: ShadowVariant;
-}
+// Indica hacia dónde se mueve la sombra
+export type ShadowOffset = {
+  width: number;
+  height: number;
+};
 
 export type ShadowVariant = {
   shadowColor: string;
@@ -45,16 +47,19 @@ export type ShadowVariant = {
   shadowRadius: number;
   shadowOffset: ShadowOffset;
   elevation: number;
-}
+};
 
-export type ShadowOffset = {
-  width: number;
-  height: number;
-}
+// Tenemos tres tamaños de sombra para reutilizarlos
+export type ShadowsType = {
+  sm: ShadowVariant;
+  md: ShadowVariant;
+  lg: ShadowVariant;
+};
 
+// Junta todo lo necesario para formar un tema
 export type ThemeType = {
   colors: ColorsType;
   texts: TextsType;
   shadows: ShadowsType;
-  schema: string;
+  schema: "light" | "dark";
 };

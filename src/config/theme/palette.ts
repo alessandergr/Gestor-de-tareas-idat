@@ -1,8 +1,10 @@
-import { ThemeType } from "@/core/types/theme.type";
+import type { ThemeType } from "@/core/types/theme.type";
+
 import { darkColor, lightColor } from "./colors";
 import { darkShadow, lightShadow } from "./shadows";
 import { darkText, lightText } from "./texts";
 
+// Junta colores, textos y sombras de cada tema
 export const lightTheme: ThemeType = {
   colors: lightColor,
   texts: lightText,
@@ -17,6 +19,7 @@ export const darkTheme: ThemeType = {
   schema: "dark",
 };
 
+// Permite elegir entre tema claro y oscuro
 export const Palette = {
   dark: darkTheme,
   light: lightTheme,

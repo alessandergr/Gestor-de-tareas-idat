@@ -1,14 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from "react-native";
+import { Alert, ScrollView, StyleSheet, Switch, Text, View, } from "react-native";
 
 import { firebaseAuth } from "@/config/firebase/firebase.config";
 import { Background } from "@/core/components/Background.component";
@@ -19,9 +12,11 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { palette, toggleTheme } = useThemeContext();
 
+  // Usuario que inició sesión y tema actual
   const user = firebaseAuth.currentUser;
   const isDarkMode = palette.schema === "dark";
 
+  // Cierra la sesión y regresa al login
   const handleLogout = async () => {
     try {
       await signOut(firebaseAuth);
@@ -37,8 +32,8 @@ export default function ProfileScreen() {
   return (
     <Background>
       <ScrollView
-        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
         <Text
           style={[
@@ -49,6 +44,7 @@ export default function ProfileScreen() {
           Mi perfil
         </Text>
 
+        {/* Datos del usuario */}
         <View
           style={[
             styles.profileCard,
@@ -117,8 +113,8 @@ export default function ProfileScreen() {
                 { color: palette.texts.primary },
               ]}
             >
-              Usuario que organiza y administra sus
-              tareas personales desde la aplicación.
+              Usuario que organiza y administra sus tareas
+              personales desde la aplicación.
             </Text>
 
             <Text
@@ -143,6 +139,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Ajustes de la aplicación */}
         <Text
           style={[
             styles.sectionTitle,

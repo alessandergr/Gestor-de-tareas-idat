@@ -1,13 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { ReactNode } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import type { ReactNode } from "react";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, } from "react-native";
 
 import { useThemeContext } from "@/core/contexts/theme.context";
 
@@ -17,11 +10,7 @@ interface AuthContainerProps {
   children: ReactNode;
 }
 
-export const AuthContainer = ({
-  title,
-  subtitle,
-  children,
-}: AuthContainerProps) => {
+export const AuthContainer = ({ title, subtitle, children,}: AuthContainerProps) => {
   const { palette } = useThemeContext();
 
   return (
@@ -30,48 +19,38 @@ export const AuthContainer = ({
         styles.container,
         { backgroundColor: palette.colors.background },
       ]}
+      // En iPhone mueve el contenido para que el teclado no tape los campos
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
+        {/* Icono que usamos arriba del login y registro */}
         <View
           style={[
             styles.iconBox,
-            {
-              backgroundColor:
-                palette.colors.surfaceSecondary,
-            },
+            { backgroundColor: palette.colors.surfaceSecondary },
           ]}
         >
           <Ionicons
-            name="checkmark-done-outline"
+            name="checkmark-circle-outline"
             size={42}
             color={palette.colors.primary.default}
           />
         </View>
 
-        <Text
-          style={[
-            styles.title,
-            { color: palette.texts.primary },
-          ]}
-        >
+        {/* Estos textos cambian dependiendo si estamos en login o registro */}
+        <Text style={[styles.title, { color: palette.texts.primary }]}>
           {title}
         </Text>
 
-        <Text
-          style={[
-            styles.subtitle,
-            { color: palette.texts.secondary },
-          ]}
-        >
+        <Text style={[styles.subtitle, { color: palette.texts.secondary }]}>
           {subtitle}
         </Text>
 
+        {/* Acá se mete el formulario que corresponda */}
         <View
           style={[
             styles.card,

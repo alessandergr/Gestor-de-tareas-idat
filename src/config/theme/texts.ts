@@ -1,3 +1,4 @@
+// Colores de texto para el modo claro
 export const lightText = {
   primary: "#1E293B",
   secondary: "#526174",
@@ -15,6 +16,7 @@ export const lightText = {
   error: "#B91C1C",
 };
 
+// Colores de texto para el modo oscuro
 export const darkText = {
   primary: "#F8FAFC",
   secondary: "#CBD5E1",

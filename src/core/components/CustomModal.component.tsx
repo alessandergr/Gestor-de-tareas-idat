@@ -1,5 +1,5 @@
-import React from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, Text, View,} from "react-native";
+
 import { useThemeContext } from "../contexts/theme.context";
 import { CustomButton } from "./CustomButton.component";
 
@@ -31,26 +31,45 @@ export const CustomModal = ({
       visible={visible}
       transparent
       animationType="fade"
-      statusBarTranslucent
       onRequestClose={onCancel}
     >
+      {/* Oscurece lo que está detrás del mensaje */}
       <View
-        style={[styles.backdrop, { backgroundColor: palette.colors.overlay }]}
+        style={[
+          styles.backdrop,
+          {
+            backgroundColor: palette.colors.overlay,
+          },
+        ]}
       >
         <View
           style={[
             styles.container,
-            { backgroundColor: palette.colors.surface },
+            {
+              backgroundColor: palette.colors.surface,
+            },
           ]}
         >
-          <Text style={[styles.title, { color: palette.texts.primary }]}>
+          <Text
+            style={[
+              styles.title,
+              { color: palette.texts.primary },
+            ]}
+          >
             {title}
           </Text>
 
-          <Text style={[styles.message, { color: palette.texts.secondary }]}>
+          {/* Acá sale el mensaje que queremos mostrar */}
+          <Text
+            style={[
+              styles.message,
+              { color: palette.texts.secondary },
+            ]}
+          >
             {message}
           </Text>
 
+          {/* Los dos botones que salen abajo del mensaje */}
           <View style={styles.footer}>
             <CustomButton
               color="secondary"
@@ -59,6 +78,7 @@ export const CustomModal = ({
               onPress={onCancel}
               disabled={loading}
             />
+
             <CustomButton
               color="primary"
               title={confirmText}
@@ -96,7 +116,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     gap: 20,
     marginTop: 20,
   },

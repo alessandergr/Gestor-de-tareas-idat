@@ -1,3 +1,4 @@
+// Colores usados en modo oscuro
 export const darkColor = {
   primary: {
     light: "#7DD3FC",
@@ -26,6 +27,7 @@ export const darkColor = {
   overlay: "rgba(0, 0, 0, 0.7)",
 };
 
+// Colores usados en modo claro
 export const lightColor = {
   primary: {
     light: "#BAE6FD",

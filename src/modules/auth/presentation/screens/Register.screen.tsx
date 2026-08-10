@@ -1,18 +1,11 @@
 import { FirebaseError } from "firebase/app";
 import {
   createUserWithEmailAndPassword,
-  signOut,
   updateProfile,
 } from "firebase/auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { firebaseAuth } from "@/config/firebase/firebase.config";
 import { CustomButton } from "@/core/components/CustomButton.component";
@@ -27,6 +20,7 @@ interface RegisterErrors {
   confirmation: string;
 }
 
+// Cambiamos los errores de Firebase por mensajes más fáciles de entender
 const getFirebaseMessage = (error: unknown) => {
   if (!(error instanceof FirebaseError)) {
     return "Ocurrió un error inesperado.";
@@ -67,65 +61,71 @@ export const RegisterScreen = () => {
     const cleanName = name.trim();
     const cleanEmail = email.trim();
 
-    const nextErrors: RegisterErrors = {
-      name:
-        cleanName.length < 3
-          ? "Ingrese un nombre válido"
-          : "",
-      email:
-        cleanEmail.length === 0
-          ? "Ingrese su correo"
-          : !/^\S+@\S+\.\S+$/.test(cleanEmail)
-            ? "Ingrese un correo válido"
-            : "",
-      password:
-        password.length < 6
-          ? "La contraseña debe tener al menos 6 caracteres"
-          : "",
-      confirmation:
-        confirmation.length === 0
-          ? "Confirme su contraseña"
-          : confirmation !== password
-            ? "Las contraseñas no coinciden"
-            : "",
-    };
+    let nameError = "";
+    let emailError = "";
+    let passwordError = "";
+    let confirmationError = "";
 
-    setErrors(nextErrors);
+    // Revisamos los datos antes de crear la cuenta
+    if (cleanName.length < 3) {
+      nameError = "Ingrese un nombre válido";
+    }
 
-    const hasErrors = Object.values(nextErrors).some(
-      (message) => message.length > 0,
-    );
+    if (!cleanEmail) {
+      emailError = "Ingrese su correo";
+    } else if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+      emailError = "Ingrese un correo válido";
+    }
 
-    if (hasErrors) {
+    if (password.length < 6) {
+      passwordError =
+        "La contraseña debe tener al menos 6 caracteres";
+    }
+
+    if (!confirmation) {
+      confirmationError = "Confirme su contraseña";
+    } else if (confirmation !== password) {
+      confirmationError = "Las contraseñas no coinciden";
+    }
+
+    setErrors({
+      name: nameError,
+      email: emailError,
+      password: passwordError,
+      confirmation: confirmationError,
+    });
+
+    // Si algún dato está mal no intentamos registrarlo
+    if (
+      nameError ||
+      emailError ||
+      passwordError ||
+      confirmationError
+    ) {
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const credential =
-        await createUserWithEmailAndPassword(
-          firebaseAuth,
-          cleanEmail,
-          password,
-        );
+      // Firebase crea la cuenta y deja iniciada la sesión automáticamente
+      const credential = await createUserWithEmailAndPassword(
+        firebaseAuth,
+        cleanEmail,
+        password,
+      );
 
+      // Guardamos el nombre para mostrarlo después en el perfil
       await updateProfile(credential.user, {
         displayName: cleanName,
       });
 
-      await signOut(firebaseAuth);
-
       Alert.alert(
         "Cuenta creada",
         "Tu cuenta fue registrada correctamente.",
-        [
-          {
-            text: "Continuar",
-            onPress: () => router.replace("/login"),
-          },
-        ],
       );
+
+      // No hacemos otro redirect: RootLayout detecta la sesión y abre las tareas
     } catch (error: unknown) {
       Alert.alert(
         "No se pudo registrar",
@@ -139,7 +139,7 @@ export const RegisterScreen = () => {
   return (
     <AuthContainer
       title="Crear cuenta"
-      subtitle="Regístrate para guardar y consultar tus tareas."
+      subtitle="Registra tus datos para comenzar"
     >
       <View style={styles.form}>
         <InputField
@@ -147,6 +147,7 @@ export const RegisterScreen = () => {
           placeholder="Ingresa tu nombre"
           value={name}
           error={errors.name}
+          editable={!isLoading}
           onChangeText={(value) => {
             setName(value);
             setErrors((current) => ({
@@ -163,6 +164,7 @@ export const RegisterScreen = () => {
           error={errors.email}
           keyboardType="email-address"
           autoCapitalize="none"
+          editable={!isLoading}
           onChangeText={(value) => {
             setEmail(value);
             setErrors((current) => ({
@@ -178,6 +180,7 @@ export const RegisterScreen = () => {
           value={password}
           error={errors.password}
           secureTextEntry
+          editable={!isLoading}
           onChangeText={(value) => {
             setPassword(value);
             setErrors((current) => ({
@@ -193,6 +196,7 @@ export const RegisterScreen = () => {
           value={confirmation}
           error={errors.confirmation}
           secureTextEntry
+          editable={!isLoading}
           onChangeText={(value) => {
             setConfirmation(value);
             setErrors((current) => ({
@@ -204,20 +208,15 @@ export const RegisterScreen = () => {
 
         <View style={styles.button}>
           <CustomButton
-            title={
-              isLoading
-                ? "Creando cuenta..."
-                : "Registrarme"
-            }
+            title={isLoading ? "Creando cuenta..." : "Registrarme"}
             disabled={isLoading}
             onPress={handleRegister}
           />
         </View>
 
+        {/* Si ya tiene una cuenta puede regresar al login */}
         <View style={styles.loginRow}>
-          <Text
-            style={{ color: palette.texts.secondary }}
-          >
+          <Text style={{ color: palette.texts.secondary }}>
             ¿Ya tienes una cuenta?
           </Text>
 
@@ -229,8 +228,8 @@ export const RegisterScreen = () => {
               style={[
                 styles.link,
                 {
-                  color:
-                    palette.colors.primary.default,
+                  color: palette.colors.primary.default,
+                  opacity: isLoading ? 0.5 : 1,
                 },
               ]}
             >
