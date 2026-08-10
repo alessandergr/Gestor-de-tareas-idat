@@ -2,7 +2,9 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 
 import { getTasksUseCase } from "../../di/task.dependencies";
-import { TaskEntity } from "../../domain/entities/task.entity";
+import { TaskEntity, TaskPriority } from "../../domain/entities/task.entity";
+
+type PriorityFilter = "all" | TaskPriority;
 
 interface DataStates {
   isLoading: boolean;
@@ -16,16 +18,26 @@ const DEFAULT_STATE: DataStates = {
   data: [],
 };
 
-// Acá manejamos la lista y las rutas para ver, editar o crear tareas
+// Acá manejamos la lista, la búsqueda y el filtro por prioridad
 export const useTaskList = () => {
   const router = useRouter();
+  const [dataStates, setDataStates] = useState<DataStates>(DEFAULT_STATE);
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+  const [searchText, setSearchText] = useState("");
 
-  const [dataStates, setDataStates] =
-    useState<DataStates>(DEFAULT_STATE);
+  // Aplicamos búsqueda y prioridad sobre las tareas ya cargadas
+  const filteredTasks = dataStates.data.filter((task) => {
+    const matchesPriority =
+      priorityFilter === "all" || task.priority === priorityFilter;
 
-  const handleAddPress = () => {
-    router.push("/tasks/new");
-  };
+    const matchesSearch = task.title
+      .toLowerCase()
+      .includes(searchText.trim().toLowerCase());
+
+    return matchesPriority && matchesSearch;
+  });
+
+  const handleAddPress = () => router.push("/tasks/new");
 
   const handleView = (task: TaskEntity) => {
     router.push({
@@ -54,35 +66,28 @@ export const useTaskList = () => {
   };
 
   const loadTasks = async () => {
-    setDataStates({
-      ...DEFAULT_STATE,
-      isLoading: true,
-    });
+    setDataStates({ ...DEFAULT_STATE, isLoading: true });
 
     try {
-      // Pedimos las tareas al caso de uso y actualizamos la lista
       const result = await getTasksUseCase.execute();
-
-      setDataStates({
-        ...DEFAULT_STATE,
-        data: result,
-      });
+      setDataStates({ ...DEFAULT_STATE, data: result });
     } catch {
-      // Si tampoco se pudieron obtener localmente, mostramos el estado de error
-      setDataStates({
-        ...DEFAULT_STATE,
-        isError: true,
-      });
+      setDataStates({ ...DEFAULT_STATE, isError: true });
     }
   };
 
-  // Carga las tareas apenas entramos a esta pantalla
+  // Cargamos las tareas apenas entramos a la pantalla
   useEffect(() => {
     void loadTasks();
   }, []);
 
   return {
     dataStates,
+    filteredTasks,
+    priorityFilter,
+    searchText,
+    setPriorityFilter,
+    setSearchText,
     loadTasks,
     handleView,
     handleEdit,
