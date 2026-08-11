@@ -1,7 +1,6 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 
-import { uploadTaskImage } from "../../data/services/cloudinary-upload.service";
 import { createTaskUseCase } from "../../di/task.dependencies";
 import type { TaskEntity } from "../../domain/entities/task.entity";
 
@@ -32,7 +31,7 @@ export const useNewTask = () => {
   const [dataStates, setDataStates] =
     useState<DataStates>(DATA_STATES_DEFAULT);
 
-  // Evita repetir un setTask distinto para cada campo
+  // Actualiza solo el campo que cambió sin repetir varios setTask.
   const updateTask = (
     changes: Partial<TaskEntity>,
   ) => {
@@ -49,13 +48,12 @@ export const useNewTask = () => {
     });
 
     try {
-      const imageUrl = imageUri
-        ? await uploadTaskImage(imageUri)
-        : undefined;
-
+      // Acá solo armamos la tarea.
+      // El repositorio decide si va a Firestore
+      // o si se queda en SQLite porque no hay internet.
       const result = await createTaskUseCase.execute({
         ...task,
-        imageUrl,
+        imageUrl: imageUri || undefined,
       });
 
       setDataStates({
@@ -77,15 +75,20 @@ export const useNewTask = () => {
     imageUri,
     dataStates,
     handleSubmit,
+
     onChangeTitle: (title: string) =>
       updateTask({ title }),
+
     onChangeDescription: (description: string) =>
       updateTask({ description }),
+
     onChangePriority: (
       priority: TaskEntity["priority"],
     ) => updateTask({ priority }),
+
     onChangeCategory: (category: string) =>
       updateTask({ category }),
+
     onChangeImage: setImageUri,
   };
 };

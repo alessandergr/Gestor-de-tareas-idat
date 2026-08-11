@@ -38,6 +38,12 @@ const initializeDatabase =
         pending_action TEXT,
         is_deleted INTEGER NOT NULL DEFAULT 0
       );
+
+      CREATE TABLE IF NOT EXISTS task_categories (
+        id TEXT PRIMARY KEY NOT NULL,
+        label TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0
+      );
     `);
 
     // Estas migraciones permiten conservar bases creadas antes
