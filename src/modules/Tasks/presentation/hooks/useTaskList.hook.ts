@@ -1,5 +1,12 @@
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import {
+  useFocusEffect,
+  useRouter,
+} from "expo-router";
+import {
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 
 import { getTasksUseCase } from "../../di/task.dependencies";
 import {
@@ -7,7 +14,9 @@ import {
   TaskPriority,
 } from "../../domain/entities/task.entity";
 
-type PriorityFilter = "all" | TaskPriority;
+type PriorityFilter =
+  | "all"
+  | TaskPriority;
 
 interface DataStates {
   isLoading: boolean;
@@ -21,6 +30,41 @@ const DEFAULT_STATE: DataStates = {
   data: [],
 };
 
+// Usamos un número para que el orden de prioridad
+// sea siempre el mismo.
+const PRIORITY_ORDER: Record<
+  TaskPriority,
+  number
+> = {
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+
+// Primero ordenamos por prioridad.
+// Si dos tienen la misma, las ordenamos por título.
+const sortTasks = (
+  tasks: TaskEntity[],
+): TaskEntity[] => {
+  return [...tasks].sort((a, b) => {
+    const priorityDifference =
+      PRIORITY_ORDER[a.priority] -
+      PRIORITY_ORDER[b.priority];
+
+    if (priorityDifference !== 0) {
+      return priorityDifference;
+    }
+
+    return a.title.localeCompare(
+      b.title,
+      "es",
+      {
+        sensitivity: "base",
+      },
+    );
+  });
+};
+
 export const useTaskList = () => {
   const router = useRouter();
 
@@ -30,26 +74,41 @@ export const useTaskList = () => {
   const [priorityFilter, setPriorityFilter] =
     useState<PriorityFilter>("all");
 
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] =
+    useState("");
 
-  // Filtramos por prioridad y también por el nombre de la tarea
-  const filteredTasks = dataStates.data.filter((task) => {
-    const matchesPriority =
-      priorityFilter === "all" ||
-      task.priority === priorityFilter;
+  // Sirve para saber cuál fue la carga más reciente.
+  // Así una consulta vieja no puede reemplazar una nueva.
+  const lastRequest = useRef(0);
 
-    const matchesSearch = task.title
-      .toLowerCase()
-      .includes(searchText.trim().toLowerCase());
+  const filteredTasks =
+    dataStates.data.filter((task) => {
+      const matchesPriority =
+        priorityFilter === "all" ||
+        task.priority === priorityFilter;
 
-    return matchesPriority && matchesSearch;
-  });
+      const matchesSearch =
+        task.title
+          .toLowerCase()
+          .includes(
+            searchText
+              .trim()
+              .toLowerCase(),
+          );
+
+      return (
+        matchesPriority &&
+        matchesSearch
+      );
+    });
 
   const handleAddPress = () => {
     router.push("/tasks/new");
   };
 
-  const handleView = (task: TaskEntity) => {
+  const handleView = (
+    task: TaskEntity,
+  ) => {
     router.push({
       pathname: "/tasks/detail",
       params: {
@@ -63,7 +122,9 @@ export const useTaskList = () => {
     });
   };
 
-  const handleEdit = (task: TaskEntity) => {
+  const handleEdit = (
+    task: TaskEntity,
+  ) => {
     router.push({
       pathname: "/tasks/[id]",
       params: {
@@ -77,31 +138,69 @@ export const useTaskList = () => {
     });
   };
 
-  // Traemos nuevamente las tareas cuando necesitamos actualizar la lista
-  const loadTasks = async () => {
-    setDataStates({
-      ...DEFAULT_STATE,
-      isLoading: true,
-    });
+  const loadTasks = useCallback(
+    async () => {
+      const requestId =
+        ++lastRequest.current;
 
-    try {
-      const result = await getTasksUseCase.execute();
+      // Si ya teníamos tareas, no vaciamos toda
+      // la pantalla mientras se actualiza.
+      setDataStates((current) => ({
+        ...current,
+        isLoading:
+          current.data.length === 0,
+        isError: false,
+      }));
 
-      setDataStates({
-        ...DEFAULT_STATE,
-        data: result,
-      });
-    } catch {
-      setDataStates({
-        ...DEFAULT_STATE,
-        isError: true,
-      });
-    }
-  };
+      try {
+        const result =
+          await getTasksUseCase.execute();
 
-  useEffect(() => {
-    void loadTasks();
-  }, []);
+        // Si mientras esperábamos empezó otra carga,
+        // esta respuesta ya es vieja y no la usamos.
+        if (
+          requestId !==
+          lastRequest.current
+        ) {
+          return;
+        }
+
+        setDataStates({
+          isLoading: false,
+          isError: false,
+          data: sortTasks(result),
+        });
+      } catch {
+        if (
+          requestId !==
+          lastRequest.current
+        ) {
+          return;
+        }
+
+        setDataStates((current) => ({
+          ...current,
+          isLoading: false,
+          isError: true,
+        }));
+      }
+    },
+    [],
+  );
+
+  // useFocusEffect vuelve a cargar la lista
+  // cada vez que realmente regresamos a Tareas.
+  useFocusEffect(
+    useCallback(() => {
+      void loadTasks();
+
+      return () => {
+        // Si salimos mientras una carga seguía viva,
+        // la marcamos como vieja.
+        lastRequest.current += 1;
+      };
+    }, [loadTasks]),
+  );
 
   return {
     dataStates,

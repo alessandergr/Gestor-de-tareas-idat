@@ -1,7 +1,9 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import {
+  useRef,
+  useState,
+} from "react";
 
-import { uploadTaskImage } from "../../data/services/cloudinary-upload.service";
 import { createTaskUseCase } from "../../di/task.dependencies";
 import type { TaskEntity } from "../../domain/entities/task.entity";
 
@@ -20,19 +22,28 @@ interface DataStates {
 export const useNewTask = () => {
   const router = useRouter();
 
-  const [task, setTask] = useState<TaskEntity>({
-    title: "",
-    description: "",
-    priority: "medium",
-    category: "",
-  });
+  const [task, setTask] =
+    useState<TaskEntity>({
+      title: "",
+      description: "",
+      priority: "medium",
+      category: "",
+    });
 
-  const [imageUri, setImageUri] = useState("");
+  const [imageUri, setImageUri] =
+    useState("");
 
   const [dataStates, setDataStates] =
-    useState<DataStates>(DATA_STATES_DEFAULT);
+    useState<DataStates>(
+      DATA_STATES_DEFAULT,
+    );
 
-  // Evita repetir un setTask distinto para cada campo
+  // Evita crear dos tareas si alguien
+  // toca el botón dos veces muy rápido.
+  const isSubmitting =
+    useRef(false);
+
+  // Actualiza solamente el campo que cambió.
   const updateTask = (
     changes: Partial<TaskEntity>,
   ) => {
@@ -43,20 +54,34 @@ export const useNewTask = () => {
   };
 
   const handleSubmit = async () => {
+    // Si ya está guardando, ignoramos
+    // cualquier toque extra.
+    if (isSubmitting.current) {
+      return;
+    }
+
+    isSubmitting.current = true;
+
     setDataStates({
       ...DATA_STATES_DEFAULT,
       isLoading: true,
     });
 
     try {
-      const imageUrl = imageUri
-        ? await uploadTaskImage(imageUri)
-        : undefined;
+      // El hook solamente arma la tarea.
+      //
+      // NO revisa internet.
+      // NO sube a Cloudinary.
+      // NO usa SQLite.
+      //
+      // Todo eso lo decide el repositorio.
+      const result =
+        await createTaskUseCase.execute({
+          ...task,
 
-      const result = await createTaskUseCase.execute({
-        ...task,
-        imageUrl,
-      });
+          imageUrl:
+            imageUri || undefined,
+        });
 
       setDataStates({
         ...DATA_STATES_DEFAULT,
@@ -69,6 +94,8 @@ export const useNewTask = () => {
         ...DATA_STATES_DEFAULT,
         isError: true,
       });
+    } finally {
+      isSubmitting.current = false;
     }
   };
 
@@ -77,15 +104,36 @@ export const useNewTask = () => {
     imageUri,
     dataStates,
     handleSubmit,
-    onChangeTitle: (title: string) =>
-      updateTask({ title }),
-    onChangeDescription: (description: string) =>
-      updateTask({ description }),
+
+    onChangeTitle: (
+      title: string,
+    ) =>
+      updateTask({
+        title,
+      }),
+
+    onChangeDescription: (
+      description: string,
+    ) =>
+      updateTask({
+        description,
+      }),
+
     onChangePriority: (
-      priority: TaskEntity["priority"],
-    ) => updateTask({ priority }),
-    onChangeCategory: (category: string) =>
-      updateTask({ category }),
+      priority:
+        TaskEntity["priority"],
+    ) =>
+      updateTask({
+        priority,
+      }),
+
+    onChangeCategory: (
+      category: string,
+    ) =>
+      updateTask({
+        category,
+      }),
+
     onChangeImage: setImageUri,
   };
 };

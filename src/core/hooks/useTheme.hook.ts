@@ -1,16 +1,56 @@
-import { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
 
 import { Palette } from "@/config/theme/palette";
 
-export const useTheme = () => {
-  // Guarda si estamos usando el modo claro u oscuro
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+type ThemeName = "light" | "dark";
 
-  // Con el tema elegido sacamos sus colores, textos y sombras
+const THEME_STORAGE_KEY = "app-theme";
+
+export const useTheme = () => {
+  const [theme, setTheme] =
+    useState<ThemeName>("light");
+
+  // Al abrir la app buscamos el último tema que usó la persona.
+  useEffect(() => {
+    const loadSavedTheme = async () => {
+      try {
+        const savedTheme =
+          await AsyncStorage.getItem(
+            THEME_STORAGE_KEY,
+          );
+
+        if (
+          savedTheme === "light" ||
+          savedTheme === "dark"
+        ) {
+          setTheme(savedTheme);
+        }
+      } catch {
+        // Si no se puede leer, simplemente dejamos el tema claro.
+      }
+    };
+
+    void loadSavedTheme();
+  }, []);
+
   const palette = Palette[theme];
 
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    setTheme((currentTheme) => {
+      const nextTheme: ThemeName =
+        currentTheme === "dark"
+          ? "light"
+          : "dark";
+
+      // Guardamos la elección para la próxima vez que abra la app.
+      void AsyncStorage.setItem(
+        THEME_STORAGE_KEY,
+        nextTheme,
+      );
+
+      return nextTheme;
+    });
   };
 
   return {
